@@ -1,10 +1,12 @@
+local firebase=require('luvit-firebase')
 local DBData=require('./database.lua')
 Database={}
 Database.Cache={}
 Database.Databases={}
 Database.Defaults={}
 for i,v in pairs(DBData.Databases)do
-	Database.Databases[i]=v
+	local data=firebase(v[1],v[2])
+	Database.Databases[i]=data
 	Database.Cache[i]={}
 	print(string.format("Made Database [%s]",tostring(i)))
 end

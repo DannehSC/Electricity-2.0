@@ -1,9 +1,9 @@
-local token,hooks='TOKEN HERE',{}
+token=''
+hooks={}
 pcall(function()
 	token=require('./token')
 	hooks=require('./hooks')
 end)
-timer=require('timer')
 fs=require('fs')
 discordia=require('discordia')
 client=discordia.Client({fetchMembers=true})
@@ -38,7 +38,7 @@ function loadModule(name)
 			end
 		end
 	else
-		print("<LOADING DATA> ERROR LOADING "..name.."\nERROR:"..tostring(data),tostring(others))
+		print("<LOADING> ERROR LOADING "..name.."\nERROR:"..tostring(data),tostring(others))
 		if sendLog then
 			sendLog(hooks[FFB('Errors')],"MODULE LOADING",string.format("MODULE NAME: %s\nERROR: %s",name,tostring(data)..'\n'..tostring(others)))
 		end
