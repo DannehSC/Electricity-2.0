@@ -1,3 +1,4 @@
+--Database.lua
 local firebase=require('luvit-firebase')
 local DBData=require('./database.lua')
 Database={}
@@ -14,7 +15,7 @@ for i,v in pairs(DBData.Default)do
 	Database.Defaults[i]=v
 end
 function Database:Get(data_b,guild,ind)
-	local ts=tostring
+	local ts,fmt=tostring,string.format
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then
@@ -32,7 +33,7 @@ function Database:Get(data_b,guild,ind)
 		else
 			local function callback(e,ret)
 				if e then
-					print(("ERROR IN DATABASE:\n\tDATABASE: %s\n\tGUILD NAME: %s\n\tGUILD ID: %s\n\tREQUEST: %s"):format(ts(data_b),ts(guild.name),ts(id),ts(ind)))
+					print(fmt("ERROR IN DATABASE:\n\tDATABASE: %s\n\tGUILD NAME: %s\n\tGUILD ID: %s\n\tREQUEST: %s",ts(data_b),ts(guild.name),ts(id),ts(ind)))
 				else
 					if ret=='null'or ret==nil then
 						if Database.Defaults[data_b]then
@@ -72,11 +73,16 @@ function Database:Get(data_b,guild,ind)
 			callback(e,ret)
 		end
 	else
-		print("Database does not exist. ["..tostring(data_b).."]")
+		print(fmt("Database does not exist.\nDatabase: %s\nGuild: %s\nGuild id: %s",ts(data_b),ts(guild.name),ts(guild.id)))
+		if Database.Defaults[data_b]then
+			return Database.Defaults[data_b]
+		else
+			return{}
+		end
 	end
 end
 function Database:Update(data_b,guild,ind,val)
-	local ts=tostring
+	local ts,fmt=tostring,string.format
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then
@@ -127,6 +133,6 @@ function Database:Update(data_b,guild,ind,val)
 			end
 		end
 	else
-		print("Database does not exist. ["..tostring(data_b).."]")
+		print(fmt("Database does not exist.\nDatabase: %s\nGuild: %s\nGuild id: %s",ts(data_b),ts(guild.name),ts(guild.id)))
 	end
 end

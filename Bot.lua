@@ -46,9 +46,10 @@ function loadModule(name)
 	end
 end
 loadModule('Functions')
-loadModule('Commands')
 loadModule('Database')
+loadModule('Commands')
 loadModule('Events')
+loadModule('API')
 client:on('messageCreate',Events.messageCreate)
 client:on('ready',Events.ready)
 client:run(token)

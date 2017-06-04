@@ -14,8 +14,9 @@ function Events.messageCreate(message)
 	if content:sub(1,#bet)==bet then
 		local n
 		if content:find' 'then
-			command=content:sub(#bet+1,content:find' '-1)
-			n=content:find' '+1
+			n=content:find' '
+			command=content:sub(#bet+1,n-1)
+			n=n+1
 		else
 			command=content:sub(#bet+1)
 			n=9999
@@ -25,7 +26,7 @@ function Events.messageCreate(message)
 				if command:lower()==cmd:lower()then
 					if tab.serverOnly then
 						if not isServer then
-							sendMessage(message,'This command does not work in DMs.')
+							sendMessage(message,'Command error:\nThis command does not work in DMs.')
 							return
 						end
 					end
@@ -45,6 +46,8 @@ function Events.messageCreate(message)
 						if not a then
 							sendMessage(message,'Command error:\n'..b)
 						end
+					else
+						sendMessage(message,'Command error:\nYour rank is not high enough to run this command')
 					end
 				end
 			end

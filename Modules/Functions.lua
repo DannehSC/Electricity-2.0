@@ -1,8 +1,18 @@
 --FUNCTIONS.LUA--
+color=discordia.Color
 mutex=discordia.Mutex()
 query=require("querystring")
+enclib=require("encrypter")
 http=require("coro-http")
 json=require("json")
+colors={
+	red=color(255,0,0),
+	green=color(0,255,0),
+	blue=color(0,0,255),
+	bright_blue=color(0,200,255),
+	orange=color(255,160,0),
+	yellow=color(255,255,0),
+}
 function timeStamp()
 	return os.date("%I:%M:%S %p - %a, %b %d")
 end
@@ -55,6 +65,13 @@ function embed(title,desc,color,fields)
 	return emb
 end
 function sendMessage(obj,con,emb)
+	local doSend,orig=false,con
+	if type(con)=='string'then
+		if #con>1999 then
+			con=con:sub(1,1982)..'- | **CONTINUED**'
+			doSend=true
+		end
+	end
 	if emb then
 		con={embed=con}
 	end
@@ -62,6 +79,9 @@ function sendMessage(obj,con,emb)
 		obj:reply(con)
 	elseif obj.sendMessage then
 		obj:sendMessage(con)
+	end
+	if doSend then
+		sendMessage(obj,'-'..orig:sub(1983))
 	end
 end
 function getRank(member,server)
@@ -149,7 +169,12 @@ function getSwitches(str)
 	end
 	return r
 end
-function urban(input)
+function urban(input,d)
+	if d then
+		input=input:sub(1,input:find'/d'-1)
+	else
+		d=2
+	end
 	local fmt=string.format
 	local request=query.urlencode(input)
 	if request then
@@ -158,12 +183,18 @@ function urban(input)
 		if jdata then
 			local t=fmt('Results for: %s\n',input)
 			if jdata.list[1]then
-				t=t..'Definition 1: '..jdata.list[1].definition..'\n'
-				if jdata.list[2]then
-					t=t..'Definition 2: '..jdata.list[2].definition
+				if d then
+					local def=0
+					for i=1,d do
+						if jdata.list[i]then
+							t=t..fmt('**Definition %d:** %s\n',i,jdata.list[i].definition)
+							def=i
+						end
+					end
+					t=t..fmt('**Definitions found: %s**',def)
 				end
 			else
-				t=t..'No results found.'
+				t=t..'No definitions found.'
 			end
 			return t
 		else
@@ -179,4 +210,14 @@ function getCatFile()
 		error'ERROR: Unable to decode JSON [getCatFile]'
 	end
 	return json.decode(request).file
+end
+function convertToBool(t)
+	if type(t)=='boolean'then return t end
+	t=t:lower()
+	if t=='yes'or t=='true'then
+		return true
+	end
+	if t=='no'or t=='false'then
+		return false
+	end
 end
