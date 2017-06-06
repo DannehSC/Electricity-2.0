@@ -169,48 +169,6 @@ function getSwitches(str)
 	end
 	return r
 end
-function urban(input,d)
-	if d then
-		input=input:sub(1,input:find'/d'-1)
-	else
-		d=2
-	end
-	local fmt=string.format
-	local request=query.urlencode(input)
-	if request then
-		local technical,data=http.request('GET',fmt('https://api.urbandictionary.com/v0/define?term=%s',request))
-		local jdata=json.decode(data)
-		if jdata then
-			local t=fmt('Results for: %s\n',input)
-			if jdata.list[1]then
-				if d then
-					local def=0
-					for i=1,d do
-						if jdata.list[i]then
-							t=t..fmt('**Definition %d:** %s\n',i,jdata.list[i].definition)
-							def=i
-						end
-					end
-					t=t..fmt('**Definitions found: %s**',def)
-				end
-			else
-				t=t..'No definitions found.'
-			end
-			return t
-		else
-			return"ERROR: unable to json decode"
-		end
-	else
-		return"ERROR: unable to urlencode"
-	end
-end
-function getCatFile()
-	local requestdata,request=http.request('GET','http://random.cat/meow')
-	if not json.decode(request)then
-		error'ERROR: Unable to decode JSON [getCatFile]'
-	end
-	return json.decode(request).file
-end
 function convertToBool(t)
 	if type(t)=='boolean'then return t end
 	t=t:lower()

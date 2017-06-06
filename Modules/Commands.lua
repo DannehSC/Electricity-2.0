@@ -16,7 +16,7 @@ addCommand('Beep','Beeps the bot.','beep',0,false,false,false,function(message,a
 	sendMessage(message,"Boop!")
 end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
-	local file=getCatFile()
+	local file=API.Misc:Cats()
 	sendMessage(message,{file=file})
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
@@ -27,7 +27,7 @@ addCommand('Urban','Urban dictionary','urban',0,false,false,true,function(messag
 	if switches['d']~=nil and tonumber(switches['d'])then
 		d=tonumber(switches['d'])
 	end
-	local data=urban(args[1],d)
+	local data=API.Misc:Urban(args[1],d)
 	sendMessage(message,data)
 end)
 addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(message,args)
@@ -137,9 +137,9 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 	end})
 	env._env=env
 	setfenv(a,env)
-	local c,d=pcall(coroutine.wrap(a))
+	local c,d=pcall(a)
 	if not c then
-		return sendMessage(message,"[R] Error! - "..tostring(b))
+		return sendMessage(message,"[R] Error! - "..tostring(d))
 	end
 	if #tx==0 then tx='No output'end
 	sendMessage(message,string.format('```%s```',tostring(tx)))
