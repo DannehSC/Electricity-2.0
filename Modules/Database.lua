@@ -4,15 +4,106 @@ local DBData=require('./database.lua')
 Database={}
 Database.Cache={}
 Database.Databases={}
-Database.Defaults={}
+Database.Defaults={
+	['Settings']={
+		admin_roles={},
+		bet='-',
+		mod_roles={},
+		verify='true',--'false',
+		verify_role='Member',
+		verify_chan='default---channel',
+	},
+	['Ignore']=function(guild)
+		if not guild then return end
+		if guild['guild']then
+			guild=guild.guild
+		end
+		local e,ret=pcall(function()
+			local tab={}
+			for textChannel in guild.textChannels do
+				tab[textChannel.name]=false
+			end
+			return tab
+		end)
+		if not e then
+			print("[IGNORE DEFAULT] ERROR | "..tostring(ret).." | GUILD NAME: "..tostring(guild.name).." | GUILD ID: "..tostring(guild.id))
+			return{}
+		else
+			return ret
+		end
+	end,
+	['Bans']={['000000']='test#0000'},
+	['Cases']={['Case: 0']={Time=tostring(timeStamp()),Moderator='test#0000',ModeratorId='000000',Reason='Setting up the case database.',Case='Mute'}},
+	['Roles']={['default']={name='Default',id='00000000'}},
+	['Votes']={},
+	['Mutes']={},
+}
+s_preds={
+	admin_roles=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		local r=guild:getRole('name',name)
+		if r then
+			table.insert(settings.admin_roles,r.name)
+			Database:Update('Settings',guild)
+			return"Successfully added role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..r.name..")"
+		end
+	end,
+	mod_roles=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		local r=guild:getRole('name',name)
+		if r then
+			table.insert(settings.mod_roles,r.name)
+			Database:Update('Settings',guild)
+			return"Successfully added role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..r.name..")"
+		end
+	end,
+	verify_role=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		local r=guild:getRole('name',name)
+		if r then
+			Database:Update('Settings',guild,'verify_role',r.name)
+			return"Successfully set verify role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..r.name..")"
+		end
+	end,
+	verify_chan=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		local c=guild:getChannel('name',name)
+		if r then
+			Database:Update('Settings',guild,'verify_chan',r.name)
+			return"Successfully set verify channel! ("..r.name..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..r.name..")"
+		end
+	end,
+	verify=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			Database:Update('Settings',guild,'verify',value)
+			return"Set verify to "..value
+		end
+	end,
+}
+descriptions={
+	
+}
 for i,v in pairs(DBData.Databases)do
 	local data=firebase(v[1],v[2])
 	Database.Databases[i]=data
 	Database.Cache[i]={}
 	print(string.format("Made Database [%s]",tostring(i)))
-end
-for i,v in pairs(DBData.Default)do
-	Database.Defaults[i]=v
 end
 function Database:Get(data_b,guild,ind)
 	local ts,fmt=tostring,string.format

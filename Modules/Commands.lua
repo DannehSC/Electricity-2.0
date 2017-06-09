@@ -20,7 +20,7 @@ addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,fal
 	sendMessage(message,{file=file})
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
-	sendMessage(message,"The commands list has been moved to a webpage!\n\n`https://github.com/DannehSC/Electricity-2.0/wiki/Commands`")
+	sendMessage(message,"The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>")
 end)
 addCommand('Urban','Urban dictionary','urban',0,false,false,true,function(message,args,switches)
 	local d
@@ -101,6 +101,97 @@ addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function
 		end
 	else
 		sendMessage(message,"Cannot kick member! Nobody mentioned!")
+	end
+end)
+addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,function(message,args,switches)
+	local guild=message.guild
+	local settings=Database:Get('Settings',guild)
+	if switches.s then
+		if settings[switches.s]then
+			if type(settings[switches.s])=='table'then
+				return sendMessage(message,"Setting "..switches.s.." is a list setting. Please use lset/lsettings.")
+			end
+			if switches.v then
+				if s_pred[switches.s]then
+					s_pred[switches.s](switches.v)
+				else
+					Database:Update('Settings',guild,switches.s,switches.v)
+				end
+			elseif switches.d then
+				if descriptions[switches.s]then
+					sendMessage(message,string.format("Setting: %s | Description: %s",switches.s,descriptions[switches.s]))
+				else
+					sendMessage(message,string.format("Setting: %s | Description: %s",switches.s,"No description found." ))
+				end
+			else
+				sendMessage(message,"Setting: "..switches.s.." | Value: "..settings[switches.s])
+			end
+		else
+			return sendMessage(message,"No setting found: "..switches.s)
+		end
+	elseif switches.l then
+		local this=''
+		for i,v in pairs(settings)do
+			this=this..i..'\n'
+		end
+		sendMessage(message,"Settings list:\n"..this)
+	else
+		sendMessage(message,"How to use settings menu:\n/s <setting> /v <value>\nSets <setting> to <value>.\n/s <setting> /d\nGrabs description for setting.\n/s <setting>\nCurrent setting.\n/l\nList of settings.")
+	end
+end)
+addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,true,true,function(message,args,switches)
+	local guild=message.guild
+	local settings=Database:Get('Settings',guild)
+	local fmt=string.format
+	if switches.s then
+		if settings[switches.s]then
+			if type(settings[switches.s])~='table'then
+				return sendMessage(message,"Setting "..switches.s.." is not a list setting. Please use the set/settings command.")
+			end
+			if switches.a then
+				if s_pred[switches.s]then
+					s_pred[switches.s](switches.a)
+				else
+					table.insert(settings[switches.s],switches.a)
+					Database:Update('Settings',guild)
+				end
+			elseif switches.r then
+				for i,v in pairs(settings[switches.s])do
+					if v:lower()==switches.r:lower()then
+						settings[switches.s][i]=nil
+						Database:Update('Settings',guild)
+					end
+				end
+			elseif switches.clear then
+				if switches.confirm then
+					sendMessage(message,fmt('Clearing %s.',settings.s))
+				else
+					sendMessage(message,'Use the /confirm switch to confirm this clearing.')
+				end
+			elseif switches.d then
+				if descriptions[switches.s]then
+					sendMessage(message,fmt("Setting: %s | Description: %s",switches.s,descriptions[switches.s]))
+				else
+					sendMessage(message,fmt("Setting: %s | Description: %s",switches.s,"No description found." ))
+				end
+			else
+				sendMessage(message,"Setting: "..switches.s.." | Value: "..table.concat(settings[switches.s],', '))
+			end
+		else
+			return sendMessage(message,"No setting found: "..switches.s)
+		end
+	else
+		sendMessage(message,[[
+			How to use list settings menu:
+			/s <setting> /a <value>
+			Adds <value> to <setting> list.
+			/s <setting> /r <value>
+			Removes <value> from <setting> list.
+			/s <setting> /d
+			Grabs description for setting list.
+			/s <setting>
+			Current setting values.]]
+		)
 	end
 end)
 addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,function(message,args)
