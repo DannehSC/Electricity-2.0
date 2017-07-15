@@ -162,12 +162,20 @@ function findMembers(guild,tofind,exacto)
 	end
 	return rmembers
 end
-function getSwitches(str)
-	local r={}
-	for flag,content in string.gmatch(str,'%/(%S*)%s*([^%-]*)')do
-		r[flag]=content
-	end
-	return r
+function getSwitches(input)
+    local flags={}
+    local record={}
+    for x in input:gmatch("[^-%s]+")do
+        record[#record+1]=x
+    end
+    for i,v in pairs(record)do
+        if v:match("^/%a+$")then
+            if record[i+1]~= nil then
+                flags[v:match("^/(%a+)")]=record[i+1]
+            end
+        end
+    end
+    return flags
 end
 function convertToBool(t)
 	if type(t)=='boolean'then return t end
@@ -178,4 +186,24 @@ function convertToBool(t)
 	if t=='no'or t=='false'then
 		return false
 	end
+end
+function filter(message)
+	local content=message.content
+	local settings=Database:Get('Settings',message)
+	if settings.anti_link then
+		if content:find('discord.gg/')or content:find('discordapp.com/oauth2/authorize?client_id=')or client:find('discordapp.com/api/oauth2/authorize?client_id=')then
+			return true
+		end
+	end
+	for i,v in pairs(settings.banned_phrases)do
+		if content:lower():find(v:lower())then
+			return true
+		end
+	end
+end
+function getIdFromString(str)
+	local fs=str:find('<')
+	local fe=str:find('>')
+	if not fs or not fe then return end
+	return str:sub(fs+2,fe-1)
 end

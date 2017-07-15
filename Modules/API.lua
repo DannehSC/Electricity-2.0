@@ -1,7 +1,7 @@
 API={
 	Data={},
 	Endpoints={
-		['DBots_Stats']='https://bots.discord.pw/api/bots/284380758611591170/stats',
+		['DBots_Stats']='https://bots.discord.pw/api/bots/%s/stats',
 		['Meow']='http://random.cat/meow',
 		['Urban']='https://api.urbandictionary.com/v0/define?term=%s',
 	},
@@ -42,7 +42,7 @@ API.Misc={}
 function API.Misc:Cats()
 	local requestdata,request=API:Get('Meow')
 	if not json.decode(request)then
-		error'ERROR: Unable to decode JSON [API.Misc:Cats]'
+		return'ERROR: Unable to decode JSON [API.Misc:Cats]'
 	end
 	return json.decode(request).file
 end

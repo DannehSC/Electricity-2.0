@@ -1,13 +1,17 @@
 --EVENTS.LUA--
 Events={}
 function Events.messageCreate(message)
-	local bet='-' --temporary, to replace with database.
+	local bet=':'--default
 	local content,command,isServer=message.content,'',false
 	if message.author.bot==true then return end
 	if message.channel.isPrivate then
 		--do nothing, it doesn't really matter
 	else
 		isServer=true
+		if filter(message)then
+			return
+		end
+		bet=Database:Get('Settings',message).bet
 	end
 	local obj=(message.member~=nil and message.member or message.author)
 	local rank=getRank(obj,isServer)
@@ -55,5 +59,6 @@ function Events.messageCreate(message)
 	end
 end
 function Events.ready()
+	client:setGameName('Mention me for help!')
 	print'ready'
 end

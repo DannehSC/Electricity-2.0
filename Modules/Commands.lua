@@ -82,7 +82,7 @@ addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function
 			end
 		end
 	end
-	if not getPermissions(bm,'kickMembers')then error"Lack of permissions, kickMembers required."end
+	if not getPermissions(bm,'kickMembers')then return sendMessage(message,"Lack of permissions, kickMembers required.")end
 	local u,bpos=message:mentionedUsers(),getHighestRole(bm)
 	if u then
 		local member=u:getMembership(message.guild)
@@ -103,6 +103,57 @@ addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function
 		sendMessage(message,"Cannot kick member! Nobody mentioned!")
 	end
 end)
+addCommand('Ban','Bans a member.',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
+	local guild=message.guild
+	local bm,n=getBotMember(guild)
+	if not getPermissions(bm,'banMembers')then return sendMessage(message,"Lack of permissions, banMembers required.")end
+	if switches['u']then
+		for user in guild.bannedUsers do
+			if user.id==switches['u']then
+				local this=guild:unbanUser(user)
+				if not this then
+					return sendMessage(message,"Cannot unban member! Unknown error!")
+				end
+				n=user
+			end
+		end
+		if not n then
+			sendMessage(message,"User not found. Did you use a proper ID?")
+		else
+			sendMessage(message,string.format("User %s#%s (%s) unbanned.",n.username,n.discriminator,n.id))
+		end
+		return
+	elseif switches['l']then
+		local tx=''
+		for user in guild.bannedUsers do
+			tx=tx..'Name:\n\t'..user.username..'\nDiscriminator:\n\t'..user.discriminator..'\nId:\n\t'..user.id..'\n'
+		end
+		if #tx==0 then
+			sendMessage(message,"No users found.")
+		else
+			sendMessage(message,tx)
+		end
+		return
+	end
+	local u,bpos=message:mentionedUsers(),getHighestRole(bm)
+	if u then
+		local member=u:getMembership(message.guild)
+		if getRank(member)<getRank(message.member)then
+			if bpos>getHighestRole(member)then
+				local this=member:ban()
+				if not this then
+					sendMessage(message,"Cannot ban member! Unknown error!")
+				end
+			else
+				sendMessage(message,"Cannot ban member! Rank exceeds my own!")
+			end
+		else
+			sendMessage(message,"Cannot ban member! Their rank either exceeds yours, or they are the same rank!")
+		end
+	else
+		sendMessage(message,"Cannot ban member! Nobody mentioned!")
+	end
+end)
 addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
 	local settings=Database:Get('Settings',guild)
@@ -113,7 +164,10 @@ addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,f
 			end
 			if switches.v then
 				if s_pred[switches.s]then
-					s_pred[switches.s](switches.v)
+					local data=s_pred[switches.s](switches.v,message)
+					if data then
+						sendMessage(message,data)
+					end
 				else
 					Database:Update('Settings',guild,switches.s,switches.v)
 				end
@@ -132,7 +186,7 @@ addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,f
 	elseif switches.l then
 		local this=''
 		for i,v in pairs(settings)do
-			this=this..i..'\n'
+			this=this..i..' | '..tostring(v)..'\n'
 		end
 		sendMessage(message,"Settings list:\n"..this)
 	else
@@ -160,8 +214,10 @@ addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,tru
 					if v:lower()==switches.r:lower()then
 						settings[switches.s][i]=nil
 						Database:Update('Settings',guild)
+						return
 					end
 				end
+				sendMessage(message,'Not found! Value: '..switches.r)
 			elseif switches.clear then
 				if switches.confirm then
 					sendMessage(message,fmt('Clearing %s.',settings.s))

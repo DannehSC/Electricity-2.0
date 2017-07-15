@@ -7,9 +7,10 @@ Database.Databases={}
 Database.Defaults={
 	['Settings']={
 		admin_roles={},
-		bet='-',
+		bet=':',
+		banned_phrases={},
 		mod_roles={},
-		verify='true',--'false',
+		verify='false',
 		verify_role='Member',
 		verify_chan='default---channel',
 	},
@@ -38,35 +39,53 @@ Database.Defaults={
 	['Votes']={},
 	['Mutes']={},
 }
-s_preds={
+s_pred={
 	admin_roles=function(name,message)
 		local guild=message.guild
 		local settings=Database:Get('Settings',guild)
-		local r=guild:getRole('name',name)
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild:getRole('name',name)
+		end
 		if r then
 			table.insert(settings.admin_roles,r.name)
 			Database:Update('Settings',guild)
 			return"Successfully added role! ("..r.name..")"
 		else
-			return"Unsuccessful! Role does not exist! ("..r.name..")"
+			return"Unsuccessful! Role does not exist! ("..name..")"
 		end
 	end,
 	mod_roles=function(name,message)
 		local guild=message.guild
 		local settings=Database:Get('Settings',guild)
-		local r=guild:getRole('name',name)
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild:getRole('name',name)
+		end
 		if r then
 			table.insert(settings.mod_roles,r.name)
 			Database:Update('Settings',guild)
 			return"Successfully added role! ("..r.name..")"
 		else
-			return"Unsuccessful! Role does not exist! ("..r.name..")"
+			return"Unsuccessful! Role does not exist! ("..name..")"
 		end
 	end,
 	verify_role=function(name,message)
 		local guild=message.guild
 		local settings=Database:Get('Settings',guild)
-		local r=guild:getRole('name',name)
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild:getRole('name',name)
+		end
 		if r then
 			Database:Update('Settings',guild,'verify_role',r.name)
 			return"Successfully set verify role! ("..r.name..")"
@@ -77,12 +96,18 @@ s_preds={
 	verify_chan=function(name,message)
 		local guild=message.guild
 		local settings=Database:Get('Settings',guild)
-		local c=guild:getChannel('name',name)
-		if r then
-			Database:Update('Settings',guild,'verify_chan',r.name)
-			return"Successfully set verify channel! ("..r.name..")"
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
 		else
-			return"Unsuccessful! Channel does not exist! ("..r.name..")"
+			c=guild:getChannel('name',name)
+		end
+		if c then
+			Database:Update('Settings',guild,'verify_chan',c.name)
+			return"Successfully set verify channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
 	verify=function(value,message)
