@@ -7,7 +7,9 @@ Database.Databases={}
 Database.Defaults={
 	['Settings']={
 		admin_roles={},
-		bet=':',
+		audit_log='false',
+		audit_log_chan='default---channel',
+		bet='!',
 		banned_phrases={},
 		mod_roles={},
 		verify='false',
@@ -33,7 +35,6 @@ Database.Defaults={
 			return ret
 		end
 	end,
-	['Bans']={['000000']='test#0000'},
 	['Cases']={['Case: 0']={Time=tostring(timeStamp()),Moderator='test#0000',ModeratorId='000000',Reason='Setting up the case database.',Case='Mute'}},
 	['Roles']={['default']={name='Default',id='00000000'}},
 	['Votes']={},
@@ -56,6 +57,33 @@ s_pred={
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
+	audit_log=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			Database:Update('Settings',guild,'audit_log',value)
+			return"Set audit_log to "..value
+		end
+	end,
+	audit_log_chan=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get('Settings',guild)
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
+		else
+			c=guild:getChannel('name',name)
+		end
+		if c then
+			Database:Update('Settings',guild,'audit_log_chan',c.name)
+			return"Successfully set audit log channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
 	mod_roles=function(name,message)
@@ -122,7 +150,15 @@ s_pred={
 	end,
 }
 descriptions={
-	
+	admin_roles='Roles that have admin (rank 2) access.',
+	audit_log='Value defines whether the log service is running.',
+	audit_log_chan='Log service channel to post to.',
+	bet='What users say to start a command. Example: !cmds or :cmds',
+	banned_phrases='Things users are not permitted to say.',
+	mod_roles='Roles that have moderator (rank 1) access.',
+	verify='Defines if the verification system is running or not.',
+	verify_chan='Channel where users can verify.',
+	verify_role='Role given to a member when verified using the verification system.',
 }
 for i,v in pairs(DBData.Databases)do
 	local data=firebase(v[1],v[2])

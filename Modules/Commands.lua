@@ -186,11 +186,17 @@ addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,f
 	elseif switches.l then
 		local this=''
 		for i,v in pairs(settings)do
-			this=this..i..' | '..tostring(v)..'\n'
+			this=this..i..' | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
 		end
 		sendMessage(message,"Settings list:\n"..this)
 	else
-		sendMessage(message,"How to use settings menu:\n/s <setting> /v <value>\nSets <setting> to <value>.\n/s <setting> /d\nGrabs description for setting.\n/s <setting>\nCurrent setting.\n/l\nList of settings.")
+		sendMessage(message,[[
+			How to use settings menu:
+			/s <setting> /v <value> - Sets <setting> to <value>.
+			/s <setting> /d - Grabs description for setting.
+			/s <setting> - Current setting.
+			/l - List of settings.
+		]])
 	end
 end)
 addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,true,true,function(message,args,switches)
@@ -239,15 +245,11 @@ addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,tru
 	else
 		sendMessage(message,[[
 			How to use list settings menu:
-			/s <setting> /a <value>
-			Adds <value> to <setting> list.
-			/s <setting> /r <value>
-			Removes <value> from <setting> list.
-			/s <setting> /d
-			Grabs description for setting list.
-			/s <setting>
-			Current setting values.]]
-		)
+			/s <setting> /a <value> - Adds <value> to <setting> list.
+			/s <setting> /r <value> - Removes <value> from <setting> list.
+			/s <setting> /d - Grabs description for setting list.
+			/s <setting> - Current setting values.
+		]])
 	end
 end)
 addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,function(message,args)
@@ -290,4 +292,7 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 	end
 	if #tx==0 then tx='No output'end
 	sendMessage(message,string.format('```%s```',tostring(tx)))
+end)
+addCommand('test','test','test',4,false,false,false,function(message,args)
+	error('error')
 end)

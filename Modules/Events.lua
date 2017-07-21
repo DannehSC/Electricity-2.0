@@ -1,20 +1,38 @@
 --EVENTS.LUA--
+--[[
+	TODO:
+		Add deleted message log.
+		Process edited messages.
+]]
 Events={}
 function Events.messageCreate(message)
-	local bet=':'--default
+	local settings={}
+	local bet='!'--default
 	local content,command,isServer=message.content,'',false
 	if message.author.bot==true then return end
 	if message.channel.isPrivate then
 		--do nothing, it doesn't really matter
 	else
+		settings=Database:Get('Settings',message)
 		isServer=true
-		if filter(message)then
+		local filt,reason=filter(message)
+		if filt then
+			local reply=message:reply(string.format("Your message has been filtered. Reason: %s This message will self destruct in T-10 seconds.",reason))
+			message:delete()
+			coroutine.wrap(function()
+				timer.setTimeout(10*1000,coroutine.wrap(function()
+					reply:delete()
+				end))
+			end)()
 			return
 		end
-		bet=Database:Get('Settings',message).bet
+		bet=settings.bet
 	end
 	local obj=(message.member~=nil and message.member or message.author)
 	local rank=getRank(obj,isServer)
+	if content==client.user.mentionString then
+		sendMessage(message,("To see info about the bot | %sabout\nTo see commands | %scmds\nTo see settings | %ssettings /l"):format(bet,bet,bet))
+	end
 	if content:sub(1,#bet)==bet then
 		local n
 		if content:find' 'then
@@ -49,6 +67,7 @@ function Events.messageCreate(message)
 						local a,b=pcall(tab.Function,message,args,switches)
 						if not a then
 							sendMessage(message,'Command error:\n'..b)
+							sendLog(hooks[FFB('Errors')],"**COMMAND ERROR**",string.format("Error message: %s\n\nGuild id: %s\n\nChannel id: %s\n\nUser id: %s",b,isServer and message.guild.id or"PRIVATE CHANNEL",message.channel.id,message.author.id))
 						end
 					else
 						sendMessage(message,'Command error:\nYour rank is not high enough to run this command')

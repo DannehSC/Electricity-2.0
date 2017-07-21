@@ -4,6 +4,7 @@ mutex=discordia.Mutex()
 query=require("querystring")
 enclib=require("encrypter")
 http=require("coro-http")
+timer=require("timer")
 json=require("json")
 colors={
 	red=color(255,0,0),
@@ -192,12 +193,12 @@ function filter(message)
 	local settings=Database:Get('Settings',message)
 	if settings.anti_link then
 		if content:find('discord.gg/')or content:find('discordapp.com/oauth2/authorize?client_id=')or client:find('discordapp.com/api/oauth2/authorize?client_id=')then
-			return true
+			return true,"Invite link."
 		end
 	end
 	for i,v in pairs(settings.banned_phrases)do
 		if content:lower():find(v:lower())then
-			return true
+			return true,"Banned phrase."
 		end
 	end
 end
