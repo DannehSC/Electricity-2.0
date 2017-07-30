@@ -13,7 +13,7 @@ function Events.messageCreate(message)
 	if message.channel.isPrivate then
 		--do nothing, it doesn't really matter
 	else
-		settings=Database:Get('Settings',message)
+		settings={}--Database:Get(message).Settings
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
@@ -26,7 +26,7 @@ function Events.messageCreate(message)
 			end)()
 			return
 		end
-		bet=settings.bet
+		bet=settings.bet or bet
 	end
 	local obj=(message.member~=nil and message.member or message.author)
 	local rank=getRank(obj,isServer)
@@ -74,6 +74,28 @@ function Events.messageCreate(message)
 					end
 				end
 			end
+		end
+	end
+end
+function Events.messageUpdate(message)
+	local settings={}
+	local isServer=false
+	if message.author.bot==true then return end
+	if message.channel.isPrivate then
+		--do nothing, it doesn't really matter
+	else
+		settings={}--Database:Get(message).Settings
+		isServer=true
+		local filt,reason=filter(message)
+		if filt then
+			local reply=message:reply(string.format("Your message has been filtered. Reason: %s This message will self destruct in T-10 seconds.",reason))
+			message:delete()
+			coroutine.wrap(function()
+				timer.setTimeout(10*1000,coroutine.wrap(function()
+					reply:delete()
+				end))
+			end)()
+			return
 		end
 	end
 end

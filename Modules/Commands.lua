@@ -1,4 +1,9 @@
 --COMMANDS.LUA--
+--[[
+	POSSIBLE:
+		Timed mute.
+
+]]
 local verification_codes={}
 Commands={}
 function addCommand(name,desc,cmds,rank,multi_arg,server_only,switches,func)
@@ -14,6 +19,14 @@ addCommand('Ping','Pings the bot.','ping',0,false,false,false,function(message,a
 end)
 addCommand('Beep','Beeps the bot.','beep',0,false,false,false,function(message,args)
 	sendMessage(message,"Boop!")
+end)
+addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false,false,false,function(message,args)
+	local Days,Hours,Minutes,Seconds=nil,uptime.hours,uptime.minutes,uptime.seconds
+	Days=math.floor(Hours/24)
+	Hours=math.floor(Hours-(Days*24))
+	Minutes=math.floor(Minutes-(Days*24*60)-(Hours*60))
+	Seconds=math.floor(Seconds-((Minutes-(Days*24*60)-(Hours*60))*60))
+	sendMessage(message,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",Days==1 and's'or'',Days,Hours==1 and's'or'',Hours,Minutes==1 and's'or'',Minutes,Seconds==1 and's'or'',Seconds))
 end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
 	local file=API.Misc:Cats()
@@ -69,8 +82,67 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 		end
 	end
 end)
+addCommand('Mute','Mutes a member.',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
+	coroutine.wrap(function()
+		local guild=message.guild
+		local bm=guild.me
+		local global,voice,un
+		if not getPermissions(bm,'manageChannels')then return sendMessage(message,"Lack of permissions, manageChannels required.")end
+		if switches['u']then
+			un=true
+		end
+		if switches['g']then
+			global=true
+		end
+		if switches['v']then
+			voice=true
+		end
+		local u,bpos=message:mentionedUsers(),getHighestRole(bm)
+		if u then
+			local member=u:getMembership(message.guild)
+			if getRank(member)<getRank(message.member)then
+				if bpos>getHighestRole(member)then
+					if voice then
+						if un then
+							member:setMute(false)
+						else
+							member:setMute(true)
+						end
+						sendMessage(message,(un and"Unmuted "or"Muted ")..member.mentionString.." [VOICE]")
+					else
+						if un then
+							if global then
+								for channel in guild.channels do
+									unmute(member,channel)
+								end
+							else
+								unmute(member,message.channel)
+							end
+							sendMessage(message,(global and"Globally unmuted "or"Unmuted "..member.mentionString))
+						else
+							if global then
+								for channel in guild.channels do
+									mute(member,channel)
+								end
+							else
+								mute(member,message.channel)
+							end
+							sendMessage(message,(global and"Globally muted "or"Muted "..member.mentionString))
+						end
+					end
+				else
+					sendMessage(message,"Cannot kick member! Rank exceeds my own!")
+				end
+			else
+				sendMessage(message,"Cannot kick member! Their rank either exceeds yours, or they are the same rank!")
+			end
+		else
+			sendMessage(message,"Cannot kick member! Nobody mentioned!")
+		end
+	end)()--possibly pausing the main thread is bad
+end)
 addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function(message,args,switches)
-	local bm,n=getBotMember(message.guild)
+	local bm,voice=getBotMember(message.guild),false
 	if switches['d']then
 		if tonumber(switches['d'])then
 			n=tonumber(switches['d'])
@@ -86,7 +158,6 @@ addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function
 	local u,bpos=message:mentionedUsers(),getHighestRole(bm)
 	if u then
 		local member=u:getMembership(message.guild)
-		print(getRank(member),getRank(message.member))
 		if getRank(member)<getRank(message.member)then
 			if bpos>getHighestRole(member)then
 				local this=member:kick(n)
@@ -101,6 +172,29 @@ addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function
 		end
 	else
 		sendMessage(message,"Cannot kick member! Nobody mentioned!")
+	end
+end)
+addCommand('Voice Kick','Kicks a member from voice.',{'vkick','vdeport'},1,false,true,true,function(message,args,switches)
+	local bm=getBotMember(message.guild)
+	if not getPermissions(bm,'manageChannels')then return sendMessage(message,"Lack of permissions, manageChannels required.")end
+	if not getPermissions(bm,'moveMembers')then return sendMessage(message,"Lack of permissions, moveMembers required.")end
+	local u,bpos=message:mentionedUsers(),getHighestRole(bm)
+	if u then
+		local member=u:getMembership(message.guild)
+		if getRank(member)<getRank(message.member)then
+			if bpos>getHighestRole(member)then
+				coroutine.wrap(function()--no pausing the main thread
+					local vk=voiceKick(member)
+					sendMessage(message,"Result: "..vk)
+				end)()
+			else
+				sendMessage(message,"Cannot v-kick member! Rank exceeds my own!")
+			end
+		else
+			sendMessage(message,"Cannot v-kick member! Their rank either exceeds yours, or they are the same rank!")
+		end
+	else
+		sendMessage(message,"Cannot v-kick member! Nobody mentioned!")
 	end
 end)
 addCommand('Ban','Bans a member.',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
@@ -264,7 +358,8 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 		orig(txt)
 		tx=tx..'\n'..txt
 	end
-	local a,b=loadstring(args[1],'Electricity 2.0')
+	local toload=args[1]:gsub('```lua',''):gsub('```','')
+	local a,b=loadstring(toload,'Electricity 2.0')
 	if not a then
 		return sendMessage(message,"[S] Error! - "..b)
 	end
@@ -291,7 +386,7 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 		return sendMessage(message,"[R] Error! - "..tostring(d))
 	end
 	if #tx==0 then tx='No output'end
-	sendMessage(message,string.format('```%s```',tostring(tx)))
+	sendMessage(message,string.format('```%s```',tostring(tx):gsub(token,'<Hidden for security>')))
 end)
 addCommand('test','test','test',4,false,false,false,function(message,args)
 	error('error')

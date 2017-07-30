@@ -163,20 +163,12 @@ function findMembers(guild,tofind,exacto)
 	end
 	return rmembers
 end
-function getSwitches(input)
-    local flags={}
-    local record={}
-    for x in input:gmatch("[^-%s]+")do
-        record[#record+1]=x
-    end
-    for i,v in pairs(record)do
-        if v:match("^/%a+$")then
-            if record[i+1]~= nil then
-                flags[v:match("^/(%a+)")]=record[i+1]
-            end
-        end
-    end
-    return flags
+function getSwitches(str)
+    local switches={}
+	for caught in str:gmatch("/%w+%s[^/]+")do
+		switches[caught:sub(2,caught:find("%s")-1)]=caught:sub(caught:find("%s")+1)
+	end
+	return switches
 end
 function convertToBool(t)
 	if type(t)=='boolean'then return t end
@@ -207,4 +199,24 @@ function getIdFromString(str)
 	local fe=str:find('>')
 	if not fs or not fe then return end
 	return str:sub(fs+2,fe-1)
+end
+function mute(member,channel)
+	local overwrite=channel:getPermissionOverwriteFor(member)
+	overwrite:denyPermissions('sendMessages')
+end
+function unmute(member,channel)
+	local overwrite=channel:getPermissionOverwriteFor(member)
+	overwrite:clearPermissions('sendMessages')
+end
+function voiceKick(member)
+	local guild,voice=member.guild,member.voiceChannel
+	if voice then
+		local newchan=guild:createVoiceChannel("goodbyegetkicked")
+		member:setVoiceChannel(newchan)
+		repeat timer.sleep(10)until member.voiceChannel~=nil and member.voiceChannel.id==newchan.id
+		newchan:delete()
+		return"Member kicked from voice."
+	else
+		return"No voice channel to kick them from!"
+	end
 end
