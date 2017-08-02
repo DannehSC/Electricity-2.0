@@ -45,7 +45,7 @@ addCommand('Urban','Urban dictionary','urban',0,false,false,true,function(messag
 end)
 addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(message,args)
 	local guild=message.guild
-	local settings=Database:Get('Settings',guild)
+	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 	local chan=guild:getChannel('name',settings.verify_chan)
 	if not convertToBool(settings.verify)then
 		sendMessage(message,"Verify system: Not enabled")
@@ -118,7 +118,7 @@ addCommand('Mute','Mutes a member.',{'mute','silence','shutupandtakemymoney'},1,
 							else
 								unmute(member,message.channel)
 							end
-							sendMessage(message,(global and"Globally unmuted "or"Unmuted "..member.mentionString))
+							sendMessage(message,(global and"Globally unmuted "or"Unmuted ")..member.mentionString)
 						else
 							if global then
 								for channel in guild.channels do
@@ -127,17 +127,17 @@ addCommand('Mute','Mutes a member.',{'mute','silence','shutupandtakemymoney'},1,
 							else
 								mute(member,message.channel)
 							end
-							sendMessage(message,(global and"Globally muted "or"Muted "..member.mentionString))
+							sendMessage(message,(global and"Globally muted "or"Muted ")..member.mentionString)
 						end
 					end
 				else
-					sendMessage(message,"Cannot kick member! Rank exceeds my own!")
+					sendMessage(message,"Cannot mute member! Rank exceeds my own!")
 				end
 			else
-				sendMessage(message,"Cannot kick member! Their rank either exceeds yours, or they are the same rank!")
+				sendMessage(message,"Cannot mute member! Their rank either exceeds yours, or they are the same rank!")
 			end
 		else
-			sendMessage(message,"Cannot kick member! Nobody mentioned!")
+			sendMessage(message,"Cannot mute member! Nobody mentioned!")
 		end
 	end)()--possibly pausing the main thread is bad
 end)
@@ -250,8 +250,9 @@ addCommand('Ban','Bans a member.',{'ban','banish','youshallnotpass'},2,false,tru
 end)
 addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
-	local settings=Database:Get('Settings',guild)
+	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 	if switches.s then
+		switches.s=switches.s:sub(1,#switches.s-1)
 		if settings[switches.s]then
 			if type(settings[switches.s])=='table'then
 				return sendMessage(message,"Setting "..switches.s.." is a list setting. Please use lset/lsettings.")
@@ -263,7 +264,12 @@ addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,f
 						sendMessage(message,data)
 					end
 				else
-					Database:Update('Settings',guild,switches.s,switches.v)
+					if Database.Type=='rethinkdb'then
+						Database:GetCached(guild).Settings[switches.s]=switches.v
+						Database:Update(guild)
+					else
+						Database:Update('Settings',guild,switches.s,switches.v)
+					end
 				end
 			elseif switches.d then
 				if descriptions[switches.s]then
@@ -295,9 +301,10 @@ addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,f
 end)
 addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
-	local settings=Database:Get('Settings',guild)
+	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 	local fmt=string.format
 	if switches.s then
+		switches.s=switches.s:sub(1,#switches.s-1)
 		if settings[switches.s]then
 			if type(settings[switches.s])~='table'then
 				return sendMessage(message,"Setting "..switches.s.." is not a list setting. Please use the set/settings command.")
@@ -307,13 +314,21 @@ addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,tru
 					s_pred[switches.s](switches.a)
 				else
 					table.insert(settings[switches.s],switches.a)
-					Database:Update('Settings',guild)
+					if Database.Type=='rethinkdb'then
+						Database:Update(guild)
+					else
+						Database:Update('Settings',guild)
+					end
 				end
 			elseif switches.r then
 				for i,v in pairs(settings[switches.s])do
 					if v:lower()==switches.r:lower()then
 						settings[switches.s][i]=nil
-						Database:Update('Settings',guild)
+						if Database.Type=='rethinkdb'then
+							Database:Update(guild)
+						else
+							Database:Update('Settings',guild)
+						end
 						return
 					end
 				end
@@ -321,6 +336,12 @@ addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,tru
 			elseif switches.clear then
 				if switches.confirm then
 					sendMessage(message,fmt('Clearing %s.',settings.s))
+					if Database.Type=='rethinkdb'then
+						Database:GetCached(guild).Settings=Database.Default
+						Database:Update(guild)
+					else
+						Database:Update('Settings',guild,switches.s,switches.v)
+					end
 				else
 					sendMessage(message,'Use the /confirm switch to confirm this clearing.')
 				end

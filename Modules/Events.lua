@@ -13,7 +13,7 @@ function Events.messageCreate(message)
 	if message.channel.isPrivate then
 		--do nothing, it doesn't really matter
 	else
-		settings={}--Database:Get(message).Settings
+		settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
@@ -84,7 +84,7 @@ function Events.messageUpdate(message)
 	if message.channel.isPrivate then
 		--do nothing, it doesn't really matter
 	else
-		settings={}--Database:Get(message).Settings
+		settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then

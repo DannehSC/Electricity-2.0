@@ -1,9 +1,11 @@
 --Database.lua
 local firebase=require('luvit-firebase')
 local DBData=require('./database.lua')
-Database={}
-Database.Cache={}
-Database.Databases={}
+Database={
+	Cache={},
+	Databases={},
+	Type='firebase',
+}
 Database.Defaults={
 	['Settings']={
 		admin_roles={},
@@ -52,7 +54,7 @@ s_pred={
 			r=guild:getRole('name',name)
 		end
 		if r then
-			table.insert(settings.admin_roles,r.name)
+			table.insert(settings.admin_roles,r.id)
 			Database:Update('Settings',guild)
 			return"Successfully added role! ("..r.name..")"
 		else
@@ -97,7 +99,7 @@ s_pred={
 			r=guild:getRole('name',name)
 		end
 		if r then
-			table.insert(settings.mod_roles,r.name)
+			table.insert(settings.mod_roles,r.id)
 			Database:Update('Settings',guild)
 			return"Successfully added role! ("..r.name..")"
 		else

@@ -46,7 +46,7 @@ function loadModule(name)
 	end
 end
 loadModule('Functions')
-loadModule('Database')
+loadModule('Database_new')
 loadModule('Commands')
 loadModule('Events')
 loadModule('API')

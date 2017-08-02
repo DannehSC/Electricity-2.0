@@ -1,12 +1,13 @@
 --NEW DATABASE, to be added.--
 local rethink=require('luvit-rethinkdb-wrapper')('127.0.0.1',false)
 local ts,fmt=tostring,string.format
-local Database={
+Database={
 	_raw_database=rethink,
 	Cache={},
+	Type='rethinkdb',
 }
---[[Database.Defaults={
-	['Settings']={
+Database.Default={
+	Settings={
 		admin_roles={},
 		audit_log='false',
 		audit_log_chan='default---channel',
@@ -16,34 +17,6 @@ local Database={
 		verify='false',
 		verify_role='Member',
 		verify_chan='default---channel',
-	},
-	['Ignore']=function(guild)
-		if not guild then return end
-		if guild['guild']then
-			guild=guild.guild
-		end
-		local e,ret=pcall(function()
-			local tab={}
-			for textChannel in guild.textChannels do
-				tab[textChannel.name]=false
-			end
-			return tab
-		end)
-		if not e then
-			print("[IGNORE DEFAULT] ERROR | "..tostring(ret).." | GUILD NAME: "..tostring(guild.name).." | GUILD ID: "..tostring(guild.id))
-			return{}
-		else
-			return ret
-		end
-	end,
-	['Cases']={['Case: 0']={Time=tostring(timeStamp()),Moderator='test#0000',ModeratorId='000000',Reason='Setting up the case database.',Case='Mute'}},
-	['Roles']={['default']={name='Default',id='00000000'}},
-	['Votes']={},
-	['Mutes']={},
-}]]
-Database.Default={
-	Settings={
-		
 	},
 	Ignore={},
 	Cases={},
@@ -62,8 +35,8 @@ s_pred={
 			r=guild:getRole('name',name)
 		end
 		if r then
-			table.insert(settings.admin_roles,r.name)
-			Database:Update('Settings',guild)
+			table.insert(settings.admin_roles,r.id)
+			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -75,7 +48,7 @@ s_pred={
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update('Settings',guild,'audit_log',value)
+			Database:Update(guild,'','audit_log',value)
 			return"Set audit_log to "..value
 		end
 	end,
@@ -90,7 +63,7 @@ s_pred={
 			c=guild:getChannel('name',name)
 		end
 		if c then
-			Database:Update('Settings',guild,'audit_log_chan',c.name)
+			Database:Update(guild,'','audit_log_chan',c.name)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -107,8 +80,8 @@ s_pred={
 			r=guild:getRole('name',name)
 		end
 		if r then
-			table.insert(settings.mod_roles,r.name)
-			Database:Update('Settings',guild)
+			table.insert(settings.mod_roles,r.id)
+			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -125,7 +98,7 @@ s_pred={
 			r=guild:getRole('name',name)
 		end
 		if r then
-			Database:Update('Settings',guild,'verify_role',r.name)
+			Database:Update(guild,'','verify_role',r.name)
 			return"Successfully set verify role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..r.name..")"
@@ -142,7 +115,7 @@ s_pred={
 			c=guild:getChannel('name',name)
 		end
 		if c then
-			Database:Update('Settings',guild,'verify_chan',c.name)
+			Database:Update(guild,'','verify_chan',c.name)
 			return"Successfully set verify channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -154,7 +127,7 @@ s_pred={
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update('Settings',guild,'verify',value)
+			Database:Update(guild,'','verify',value)
 			return"Set verify to "..value
 		end
 	end,
@@ -170,7 +143,7 @@ descriptions={
 	verify_chan='Channel where users can verify.',
 	verify_role='Role given to a member when verified using the verification system.',
 }
-function Database:Get(guild,query,index)
+function Database:Get(guild,index)
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then
@@ -190,11 +163,17 @@ function Database:Get(guild,query,index)
 			return Cached
 		end
 	else
-		local data,err=rethink:get(fmt('guilds/%s/%s',id,query or''))
+		local data,err=rethink:get(fmt('guilds/%s',id))
 		if err then
-			print(err)
+			print('GET',err)
 		else
-			Database.Cache[id]=data
+			if data=='null'then
+				data=Database.Default
+				Database.Cache[id]=data
+				Database:Update(guild)
+			else
+				Database.Cache[id]=data
+			end
 			return data
 		end
 	end
@@ -212,8 +191,10 @@ function Database:Update(guild,query,index,value)
 		guild=client:getGuild(id)
 	end
 	if Database.Cache[id]then
-		Database.Cache[id][index]=value
-		local data,err=rethink:post(fmt('guilds/%s/%s',id,query or''))
+		if index then
+			Database.Cache[id][index]=value
+		end
+		local data,err=rethink:post(fmt('guilds/%s%s',id,query and'/'..query or''),Database.Cache[id])
 		if err then
 			print(err)
 			return err
@@ -240,9 +221,25 @@ function Database:Delete(guild,query,index)
 			Cached[index]=nil
 		end
 	end
-	local data,err=rethink:delete(fmt('guilds/%s/%s',id,query or''))
+	local data,err=rethink:delete(fmt('guilds/%s%s',id,query and'/'..query or''))
 	if err then
 		print(err)
 		return err
+	end
+end
+function Database:GetCached(guild)
+	local id
+	if type(guild)=='table'then
+		if guild['guild']then
+			id=ts(guild.guild.id)
+		else
+			id=ts(guild.id)
+		end
+	else
+		id=ts(guild)
+		guild=client:getGuild(id)
+	end
+	if Database.Cache[id]then
+		return Database.Cache[id]
 	end
 end

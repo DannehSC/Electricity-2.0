@@ -86,13 +86,31 @@ function sendMessage(obj,con,emb)
 	end
 end
 function getRank(member,server)
+	local rank=0
 	if member.id==client.owner.id then
-		return 4
+		rank=4
 	end
 	if server then
-		
+		local settings=(Database.Type=='rethinkdb'and Database:Get(member.guild).Settings or Database:Get('Settings',member.guild))
+		for i,v in pairs(settings.mod_roles)do
+			if member.guild:getRole(v)then
+				if member:getRole(v)then
+					rank=1
+				end
+			end
+		end
+		for i,v in pairs(settings.admin_roles)do
+			if member.guild:getRole(v)then
+				if member:getRole(v)then
+					rank=2
+				end
+			end
+		end
+		if member.id==member.guild.owner.id then
+			rank=3
+		end
 	end
-	return 0
+	return rank
 end
 function getPermissions(member,flag)
 	local roles={}
@@ -164,11 +182,11 @@ function findMembers(guild,tofind,exacto)
 	return rmembers
 end
 function getSwitches(str)
-    local switches={}
-	for caught in str:gmatch("/%w+%s[^/]+")do
-		switches[caught:sub(2,caught:find("%s")-1)]=caught:sub(caught:find("%s")+1)
+    local t={}
+	for caught in str:gmatch("/ ?%S*[^/]*")do
+		t[caught:sub(2,(caught:find("%s")or 0)-1)]=caught:sub((caught:sub(2):find("%s[^ ]")or -3)+2)
 	end
-	return switches
+	return t
 end
 function convertToBool(t)
 	if type(t)=='boolean'then return t end
@@ -182,7 +200,8 @@ function convertToBool(t)
 end
 function filter(message)
 	local content=message.content
-	local settings=Database:Get('Settings',message)
+	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
+	if getRank(message.member)>1 then return end
 	if settings.anti_link then
 		if content:find('discord.gg/')or content:find('discordapp.com/oauth2/authorize?client_id=')or client:find('discordapp.com/api/oauth2/authorize?client_id=')then
 			return true,"Invite link."
