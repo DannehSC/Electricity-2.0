@@ -1,4 +1,4 @@
---NEW DATABASE, to be added.--
+--NEW DATABASE--
 local rethink=require('luvit-rethinkdb-wrapper')('127.0.0.1',false)
 local ts,fmt=tostring,string.format
 Database={
@@ -13,6 +13,7 @@ Database.Default={
 		audit_log_chan='default---channel',
 		bet='!',
 		banned_phrases={},
+		co_owner_roles={},
 		mod_roles={},
 		verify='false',
 		verify_role='Member',
@@ -26,7 +27,7 @@ Database.Default={
 s_pred={
 	admin_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -44,17 +45,17 @@ s_pred={
 	end,
 	audit_log=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update(guild,'','audit_log',value)
+			Database:Update(guild,nil,'audit_log',value)
 			return"Set audit_log to "..value
 		end
 	end,
 	audit_log_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
@@ -63,15 +64,33 @@ s_pred={
 			c=guild:getChannel('name',name)
 		end
 		if c then
-			Database:Update(guild,'','audit_log_chan',c.name)
+			Database:Update(guild,nil,'audit_log_chan',c.name)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
+	co_owner_roles=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild:getRole('name',name)
+		end
+		if r then
+			table.insert(settings.co_owner_roles,r.id)
+			Database:Update(guild)
+			return"Successfully added role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
 	mod_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -89,7 +108,7 @@ s_pred={
 	end,
 	verify_role=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -98,7 +117,7 @@ s_pred={
 			r=guild:getRole('name',name)
 		end
 		if r then
-			Database:Update(guild,'','verify_role',r.name)
+			Database:Update(guild,nil,'verify_role',r.name)
 			return"Successfully set verify role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..r.name..")"
@@ -106,7 +125,7 @@ s_pred={
 	end,
 	verify_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
@@ -115,7 +134,7 @@ s_pred={
 			c=guild:getChannel('name',name)
 		end
 		if c then
-			Database:Update(guild,'','verify_chan',c.name)
+			Database:Update(guild,nil,'verify_chan',c.name)
 			return"Successfully set verify channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -123,11 +142,11 @@ s_pred={
 	end,
 	verify=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update(guild,'','verify',value)
+			Database:Update(guild,nil,'verify',value)
 			return"Set verify to "..value
 		end
 	end,
@@ -144,6 +163,7 @@ descriptions={
 	verify_role='Role given to a member when verified using the verification system.',
 }
 function Database:Get(guild,index)
+	if not guild then error"No ID/Guild/Message provided"end
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then
@@ -167,18 +187,29 @@ function Database:Get(guild,index)
 		if err then
 			print('GET',err)
 		else
+			local u
 			if data=='null'then
 				data=Database.Default
 				Database.Cache[id]=data
-				Database:Update(guild)
+				u=''
 			else
 				Database.Cache[id]=data
+				for i,v in pairs(Database.Default.Settings)do
+					if not data.Settings[i]then
+						data.Settings[i]=v
+						u=''
+					end
+				end
+			end
+			if u then
+				Database:Update(guild)
 			end
 			return data
 		end
 	end
 end
 function Database:Update(guild,query,index,value)
+	if not guild then error"No ID/Guild/Message provided"end
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then
@@ -204,6 +235,7 @@ function Database:Update(guild,query,index,value)
 	end
 end
 function Database:Delete(guild,query,index)
+	if not guild then error"No ID/Guild/Message provided"end
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then

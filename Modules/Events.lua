@@ -2,11 +2,10 @@
 --[[
 	TODO:
 		Add deleted message log.
-		Process edited messages.
 ]]
 Events={}
 function Events.messageCreate(message)
-	local settings={}
+	local settings,ignore={},{}
 	local bet='!'--default
 	local content,command,isServer=message.content,'',false
 	if message.author.bot==true then return end
@@ -14,6 +13,7 @@ function Events.messageCreate(message)
 		--do nothing, it doesn't really matter
 	else
 		settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
+		ignore=(Database.Type=='rethinkdb'and Database:Get(message).Ignore or Database:Get('Ignore',message))
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
@@ -27,6 +27,15 @@ function Events.messageCreate(message)
 			return
 		end
 		bet=settings.bet or bet
+		if ignore[message.channel.id]==true then
+			print'ignore'
+			if message.content:sub(1,#bet+#'unignored'):lower()==bet..'unignore'then
+				print'well shit'
+				--don't return
+			else
+				return'Ignored'
+			end
+		end
 	end
 	local obj=(message.member~=nil and message.member or message.author)
 	local rank=getRank(obj,isServer)
@@ -101,5 +110,8 @@ function Events.messageUpdate(message)
 end
 function Events.ready()
 	client:setGameName('Mention me for help!')
+	for guild in client.guilds do
+		Database:Get(guild)
+	end
 	print'ready'
 end

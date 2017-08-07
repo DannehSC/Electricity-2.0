@@ -28,6 +28,13 @@ addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false
 	Seconds=math.floor(Seconds-((Minutes-(Days*24*60)-(Hours*60))*60))
 	sendMessage(message,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",Days==1 and's'or'',Days,Hours==1 and's'or'',Hours,Minutes==1 and's'or'',Minutes,Seconds==1 and's'or'',Seconds))
 end)
+addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false,false,function(message,args)
+	sendMessage(message,[[
+		**LINKS**
+		Non administrative: https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot
+		Administrative: https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot&permissions=8
+	]])
+end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
 	local file=API.Misc:Cats()
 	sendMessage(message,{file=file})
@@ -35,13 +42,59 @@ end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
 	sendMessage(message,"The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>")
 end)
-addCommand('Urban','Urban dictionary','urban',0,false,false,true,function(message,args,switches)
+addCommand('LMGTFY','Let me google that for you','lmgtfy',0,false,false,false,function(message,args)
+	sendMessage(message,("http://lmgtfy.com/?q=%s"):format(args[1]))
+end)
+addCommand('Urban','Fetches urban dictionary definitions.|/d Definition number','urban',0,false,false,true,function(message,args,switches)
 	local d
 	if switches['d']~=nil and tonumber(switches['d'])then
 		d=tonumber(switches['d'])
 	end
 	local data=API.Misc:Urban(args[1],d)
 	sendMessage(message,data)
+end)
+addCommand('Nerdy info','Info for nerds.','ninfo',0,false,false,false,function(message,args)
+	local ts=tostring
+	local cpu=uv.cpu_info()
+	local threads=#cpu
+	local cpumodel=cpu[1].model
+	local mem=math.floor(collectgarbage('count')/1000)
+	sendMessage(message,embed('Nerdy Info',nil,colors.yellow,{
+		{name='OS:',value=ts(operatingsystem)},
+		{name='CPU Threads:',value=ts(threads)},
+		{name='CPU Model:',value=ts(cpumodel)},
+		{name='Memory usage:',value=ts(mem)..' MB'},
+	}),true)
+end)
+addCommand('Guild info','Fetches info about the guild','ginfo',0,false,true,false,function(message,args)
+	local guild=message.guild
+	local oname=guild.owner.username..'#'..guild.owner.discriminator
+	local nam=(guild.owner.nickname and guild.owner.nickname..' ('..oname..')'or oname)..' | '..guild.owner.id
+	local function getVerificationLevel()
+		local v=guild.verificationLevel
+		if v==0 then
+			return"No requirements. (0)"
+		elseif v==1 then
+			return"Verified email on Discord. (1)"
+		elseif v==2 then
+			return"Registered on Discord for longer than 5 minutes. (2)"
+		elseif v==3 then
+			return"Guild member for more than 10 minutes. (3)"
+		else
+			return"No verification level. (-1)"
+		end
+	end
+	sendMessage(message,embed("Guild info",nil,colors.yellow,{
+		{name="Full guild name:",value=guild.name},
+		{name="Guild id:",value=guild.id},
+		{name="Guild owner:",value=nam},
+		{name="Guild member count:",value=guild.totalMemberCount},
+		{name="Guild channel count:",value=(guild:getChannelCount()..' (Text: '..guild:getTextChannelCount()..' | Voice: '..guild:getVoiceChannelCount()..')')},
+		{name="Guild verification level:",value=tostring(getVerificationLevel())},
+		{name="Region:",value=tostring(guild.region)},
+		{name="Shard id:",value=guild.shardId},
+		{name="This guild was created at:",value=convertJoinedAtToTime(guild.timestamp)},
+	}),true)
 end)
 addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(message,args)
 	local guild=message.guild
@@ -82,7 +135,7 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 		end
 	end
 end)
-addCommand('Mute','Mutes a member.',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
+addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()
 		local guild=message.guild
 		local bm=guild.me
@@ -141,7 +194,7 @@ addCommand('Mute','Mutes a member.',{'mute','silence','shutupandtakemymoney'},1,
 		end
 	end)()--possibly pausing the main thread is bad
 end)
-addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function(message,args,switches)
+addCommand('Kick','Kicks a member.|/d Days',{'kick','deport'},1,false,true,true,function(message,args,switches)
 	local bm,voice=getBotMember(message.guild),false
 	if switches['d']then
 		if tonumber(switches['d'])then
@@ -174,7 +227,7 @@ addCommand('Kick','Kicks a member.',{'kick','deport'},1,false,true,true,function
 		sendMessage(message,"Cannot kick member! Nobody mentioned!")
 	end
 end)
-addCommand('Voice Kick','Kicks a member from voice.',{'vkick','vdeport'},1,false,true,true,function(message,args,switches)
+addCommand('Voice Kick','Kicks a member from voice.',{'vkick','vdeport'},1,false,true,false,function(message,args,switches)
 	local bm=getBotMember(message.guild)
 	if not getPermissions(bm,'manageChannels')then return sendMessage(message,"Lack of permissions, manageChannels required.")end
 	if not getPermissions(bm,'moveMembers')then return sendMessage(message,"Lack of permissions, moveMembers required.")end
@@ -197,7 +250,7 @@ addCommand('Voice Kick','Kicks a member from voice.',{'vkick','vdeport'},1,false
 		sendMessage(message,"Cannot v-kick member! Nobody mentioned!")
 	end
 end)
-addCommand('Ban','Bans a member.',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
+addCommand('Ban','Bans a member.|/u Unban /l Ban list',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
 	local guild=message.guild
 	local bm,n=getBotMember(guild)
 	if not getPermissions(bm,'banMembers')then return sendMessage(message,"Lack of permissions, banMembers required.")end
@@ -248,7 +301,7 @@ addCommand('Ban','Bans a member.',{'ban','banish','youshallnotpass'},2,false,tru
 		sendMessage(message,"Cannot ban member! Nobody mentioned!")
 	end
 end)
-addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,function(message,args,switches)
+addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l Settings list',{'settings','set'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
 	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 	if switches.s then
@@ -299,7 +352,7 @@ addCommand('Settings','Sets the settings',{'settings','set'},3,false,true,true,f
 		]])
 	end
 end)
-addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,true,true,function(message,args,switches)
+addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove value /d Description',{'lsettings','lset'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
 	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
 	local fmt=string.format
@@ -365,6 +418,26 @@ addCommand('List Settings','Settings for lists',{'lsettings','lset'},3,false,tru
 			/s <setting> /d - Grabs description for setting list.
 			/s <setting> - Current setting values.
 		]])
+	end
+end)
+addCommand('Ignore','Ignores texts in a channel.','ignore',3,false,true,false,function(message,args)
+	local chan=message.channel
+	local ignored=(Database.Type=='rethinkdb'and Database:Get(message).Ignore or Database:Get('Ignore',message))
+	ignored[chan.id]=true
+	if Database.Type=='rethinkdb'then
+		Database:Update(message)
+	else
+		Database:Update('Ignore',message)
+	end
+end)
+addCommand('Unignore','Unignores texts in a channel.','unignore',3,false,true,false,function(message,args)
+	local chan=message.channel
+	local ignored=(Database.Type=='rethinkdb'and Database:Get(message).Ignore or Database:Get('Ignore',message))
+	ignored[chan.id]=nil
+	if Database.Type=='rethinkdb'then
+		Database:Delete(message,'Ignore/'..chan.id)
+	else
+		Database:Update('Ignore',message)
 	end
 end)
 addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,function(message,args)

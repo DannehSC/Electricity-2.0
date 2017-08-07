@@ -6,6 +6,7 @@ enclib=require("encrypter")
 http=require("coro-http")
 timer=require("timer")
 json=require("json")
+uv=require("uv")
 colors={
 	red=color(255,0,0),
 	green=color(0,255,0),
@@ -14,6 +15,62 @@ colors={
 	orange=color(255,160,0),
 	yellow=color(255,255,0),
 }
+function __genOrderedIndex( t )
+	local orderedIndex = {}
+	for key in pairs(t) do
+		table.insert( orderedIndex, key )
+	end
+	table.sort( orderedIndex )
+	return orderedIndex
+end
+function orderedNext(t, state)
+	local key = nil
+	if state == nil then
+		t.__orderedIndex = __genOrderedIndex( t )
+		key = t.__orderedIndex[1]
+	else
+		for i = 1,table.getn(t.__orderedIndex) do
+			if t.__orderedIndex[i] == state then
+				key = t.__orderedIndex[i+1]
+			end
+		end
+	end
+	if key then
+		return key, t[key]
+	end
+	t.__orderedIndex = nil
+	return
+end
+function orderedPairs(t)
+	return orderedNext, t, nil
+end
+--for key,val in orderedPairs(tab)do
+--	print(key.." : "..tostring(val))
+--end
+function sorter(a, b)
+    local t1, t2 = type(a), type(b)
+    if t1 == 'string' and t2 == 'string' then
+        local n1 = tonumber(a)
+        if n1 then
+            local n2 = tonumber(b)
+            if n2 then
+                return n1 < n2
+            end
+        end
+        return a:lower() < b:lower()
+    elseif t1 == 'number' and t2 == 'number' then
+        return a < b
+    else
+        local m1 = getmetatable(a)
+        if m1 and m1.__lt then
+            local m2 = getmetatable(b)
+            if m2 and m2.__lt then
+                return a < b
+            end
+        end
+        return tostring(a) < tostring(b)
+    end
+end
 function timeStamp()
 	return os.date("%I:%M:%S %p - %a, %b %d")
 end
@@ -62,7 +119,10 @@ function embed(title,desc,color,fields)
 	set(title,emb,'title')
 	set(desc,emb,'description')
 	set(color,emb,'color')
-	set(fields,emb,'fields')
+	--set(fields,emb,'fields')
+	if fields then
+		emb.fields=fields
+	end
 	return emb
 end
 function sendMessage(obj,con,emb)
@@ -87,9 +147,6 @@ function sendMessage(obj,con,emb)
 end
 function getRank(member,server)
 	local rank=0
-	if member.id==client.owner.id then
-		rank=4
-	end
 	if server then
 		local settings=(Database.Type=='rethinkdb'and Database:Get(member.guild).Settings or Database:Get('Settings',member.guild))
 		for i,v in pairs(settings.mod_roles)do
@@ -106,9 +163,22 @@ function getRank(member,server)
 				end
 			end
 		end
+		for i,v in pairs(settings.co_owner_roles)do
+			if member.guild:getRole(v)then
+				if member:getRole(v)then
+					rank=3
+				end
+			end
+		end
 		if member.id==member.guild.owner.id then
 			rank=3
 		end
+	end
+	if member.id==client.user.id then
+		rank=3
+	end
+	if member.id==client.owner.id then
+		rank=4
 	end
 	return rank
 end
@@ -238,4 +308,57 @@ function voiceKick(member)
 	else
 		return"No voice channel to kick them from!"
 	end
+end
+function commandDocsDump()
+	local r0t,r1t,r2t,r3t,r4t='# Rank 0 (User)\n\n','# Rank 1 (Moderator)\n\n','# Rank 2 (Administrator)\n\n','# Rank 3 (Server Owner)\n\n','# Rank 4 (Bot Creator)\n\n'
+	local r0,r1,r2,r3,r4={},{},{},{},{}
+	local function makeDoc(commandTable)
+		local text='### %s\nDescription: %s\n\nCommands: %s\n\nRank: %s\n\nSwitches: %s\n\nServer only: %s\n'
+		local sep=(commandTable.Description:find('|')or #commandTable.Description+1)
+		local desc,switches=commandTable.Description:sub(1,sep-1),commandTable.Description:sub(sep+1)
+		return text:format(commandTable.Name,desc,table.concat(commandTable.Commands,','),tostring(commandTable.Rank),switches,(not commandTable.serverOnly and'False'or'True'))
+	end
+	for i,v in orderedPairs(Commands)do
+		if v.Rank==0 then
+			table.insert(r0,v)
+		end
+		if v.Rank==1 then
+			table.insert(r1,v)
+		end
+		if v.Rank==2 then
+			table.insert(r2,v)
+		end
+		if v.Rank==3 then
+			table.insert(r3,v)
+		end
+		if v.Rank==4 then
+			table.insert(r4,v)
+		end
+	end
+	local asdf={r0t,r1t,r2t,r3t,r4t}
+	for i,v in pairs{r0,r1,r2,r3,r4}do
+		for ii,vv in pairs(v)do
+			asdf[i]=asdf[i]..makeDoc(vv)..'\n'
+		end
+	end
+	print(('%s\n%s\n%s\n%s\n%s'):format(asdf[1],asdf[2],asdf[3],asdf[4],asdf[5]))
+end
+function split(msg,bet)
+	local f=msg:find(bet)
+	if f then
+		return msg:sub(1,f-1),msg:sub(f+1)
+	else
+		return msg
+	end
+end
+function convertJoinedAtToTime(tim)
+	if not tim then return "<NULL>"end
+	local M='AM'
+	local Date,Rest=split(tim,'T')
+	local Time1,Time2=split(Rest,':')
+	if tonumber(Time1)>12 then
+		Time1=Time1-12
+		M='PM'
+	end
+	return(Time1..':'..Time2:sub(1,5).." "..M.." - "..Date)
 end
