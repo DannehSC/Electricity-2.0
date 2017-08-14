@@ -20,6 +20,24 @@ end)
 addCommand('Beep','Beeps the bot.','beep',0,false,false,false,function(message,args)
 	sendMessage(message,"Boop!")
 end)
+addCommand('About','Reads you info about the bot.','about',0,false,false,false,function(message,args)
+	local tx=''
+	local owner=client.owner
+	local bet=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message)).bet
+	function append(ntx,fin)
+		fin=fin or false
+		tx=tx..ntx..(fin==false and'\n\n'or'')
+	end
+	append("I am the bot known as Electricity 2.0.")
+	append("I was created by %s#%d (DannehSC on Github)")
+	append("To see the commands list: Please say %scmds or %scommands")
+	append("To see nerd info: Please say %sninfo")
+	append("To see uptime: Please say %suptime")
+	append("To see the settings: Please say %ssettings /l")
+	append("If you are in a guild, you can see info about the guild. Please say %sginfo")
+	append("Thank you for using Electricity!",true)
+	sendMessage(message,embed("Info",(tx):format(owner.username,owner.discriminator,bet,bet,bet,bet,bet,bet),colors.bright_blue),true)
+end)
 addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false,false,false,function(message,args)
 	local Days,Hours,Minutes,Seconds=nil,uptime.hours,uptime.minutes,uptime.seconds
 	Days=math.floor(Hours/24)
@@ -29,11 +47,9 @@ addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false
 	sendMessage(message,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",Days==1 and's'or'',Days,Hours==1 and's'or'',Hours,Minutes==1 and's'or'',Minutes,Seconds==1 and's'or'',Seconds))
 end)
 addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false,false,function(message,args)
-	sendMessage(message,[[
-		**LINKS**
-		Non administrative: https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot
-		Administrative: https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot&permissions=8
-	]])
+	sendMessage(message,embed('Links',
+		"[Non administrative](https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot)\n[Administrative](https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot&permissions=8)",
+	colors.yellow),true)
 end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
 	local file=API.Misc:Cats()
@@ -43,7 +59,7 @@ addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,
 	sendMessage(message,"The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>")
 end)
 addCommand('LMGTFY','Let me google that for you','lmgtfy',0,false,false,false,function(message,args)
-	sendMessage(message,("http://lmgtfy.com/?q=%s"):format(args[1]))
+	sendMessage(message,("http://lmgtfy.com/?q=%s"):format(query.urlencode(args[1])))
 end)
 addCommand('Urban','Fetches urban dictionary definitions.|/d Definition number','urban',0,false,false,true,function(message,args,switches)
 	local d
@@ -67,9 +83,10 @@ addCommand('Nerdy info','Info for nerds.','ninfo',0,false,false,false,function(m
 	}),true)
 end)
 addCommand('Guild info','Fetches info about the guild','ginfo',0,false,true,false,function(message,args)
+	local ts=tostring
 	local guild=message.guild
 	local oname=guild.owner.username..'#'..guild.owner.discriminator
-	local nam=(guild.owner.nickname and guild.owner.nickname..' ('..oname..')'or oname)..' | '..guild.owner.id
+	local nam=(guild.owner.nickname and guild.owner.nickname..' ('..oname..')'or oname)
 	local function getVerificationLevel()
 		local v=guild.verificationLevel
 		if v==0 then
@@ -80,19 +97,23 @@ addCommand('Guild info','Fetches info about the guild','ginfo',0,false,true,fals
 			return"Registered on Discord for longer than 5 minutes. (2)"
 		elseif v==3 then
 			return"Guild member for more than 10 minutes. (3)"
+		elseif v==4 then
+			return"Guild member must have phone registered. (4)"
 		else
-			return"No verification level. (-1)"
+			return"Unknown verification level. (-1)"
 		end
 	end
 	sendMessage(message,embed("Guild info",nil,colors.yellow,{
-		{name="Full guild name:",value=guild.name},
-		{name="Guild id:",value=guild.id},
-		{name="Guild owner:",value=nam},
-		{name="Guild member count:",value=guild.totalMemberCount},
-		{name="Guild channel count:",value=(guild:getChannelCount()..' (Text: '..guild:getTextChannelCount()..' | Voice: '..guild:getVoiceChannelCount()..')')},
-		{name="Guild verification level:",value=tostring(getVerificationLevel())},
-		{name="Region:",value=tostring(guild.region)},
-		{name="Shard id:",value=guild.shardId},
+		{name="Full guild name:",value=guild.name,inline=true},
+		{name="Guild id:",value=guild.id,inline=true},
+		{name="Region:",value=ts(guild.region),inline=true},
+		{name="Owner:",value=nam,inline=true},
+		{name="Owner ID:",value=guild.owner.id,inline=true},
+		{name="Owner status:",value=ts(guild.owner.status),inline=true},
+		{name="Member count:",value=guild.totalMemberCount,inline=true},
+		{name="Channel count:",value=(guild:getChannelCount()..' (Text: '..guild:getTextChannelCount()..' | Voice: '..guild:getVoiceChannelCount()..')'),inline=true},
+		{name="Shard id:",value=ts(guild.shardId):sub(1,3),inline=true},
+		{name="Verification level:",value=ts(getVerificationLevel()),inline=true},
 		{name="This guild was created at:",value=convertJoinedAtToTime(guild.timestamp)},
 	}),true)
 end)
@@ -134,6 +155,9 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 			sendMessage(message,"Verify system: Role not found")
 		end
 	end
+end)
+addCommand('Vote','Vote handler command',{'vote','stuffballotbox'},0,false,true,true,function(message,args,switches)
+	sendMessage(message,"Voting infrastructure to be added.")
 end)
 addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()

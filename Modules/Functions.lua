@@ -1,4 +1,5 @@
 --FUNCTIONS.LUA--
+operatingsystem=require('ffi').os
 color=discordia.Color
 mutex=discordia.Mutex()
 query=require("querystring")
@@ -8,12 +9,12 @@ timer=require("timer")
 json=require("json")
 uv=require("uv")
 colors={
-	red=color(255,0,0),
-	green=color(0,255,0),
-	blue=color(0,0,255),
-	bright_blue=color(0,200,255),
-	orange=color(255,160,0),
-	yellow=color(255,255,0),
+	red=color(255,0,0).value,
+	green=color(0,255,0).value,
+	blue=color(0,0,255).value,
+	bright_blue=color(0,200,255).value,
+	orange=color(255,160,0).value,
+	yellow=color(255,255,0).value,
 }
 function __genOrderedIndex( t )
 	local orderedIndex = {}
@@ -119,10 +120,7 @@ function embed(title,desc,color,fields)
 	set(title,emb,'title')
 	set(desc,emb,'description')
 	set(color,emb,'color')
-	--set(fields,emb,'fields')
-	if fields then
-		emb.fields=fields
-	end
+	set(fields,emb,'fields')
 	return emb
 end
 function sendMessage(obj,con,emb)
@@ -316,6 +314,9 @@ function commandDocsDump()
 		local text='### %s\nDescription: %s\n\nCommands: %s\n\nRank: %s\n\nSwitches: %s\n\nServer only: %s\n'
 		local sep=(commandTable.Description:find('|')or #commandTable.Description+1)
 		local desc,switches=commandTable.Description:sub(1,sep-1),commandTable.Description:sub(sep+1)
+		if #switches==0 then
+			switches='None'
+		end
 		return text:format(commandTable.Name,desc,table.concat(commandTable.Commands,','),tostring(commandTable.Rank),switches,(not commandTable.serverOnly and'False'or'True'))
 	end
 	for i,v in orderedPairs(Commands)do

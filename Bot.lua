@@ -6,7 +6,7 @@ pcall(function()
 end)
 fs=require('fs')
 discordia=require('discordia')
-client=discordia.Client({fetchMembers=true})
+client=discordia.Client()
 uptime=discordia.Stopwatch()
 function FFB(t)--format for beta
 	if beta==true then

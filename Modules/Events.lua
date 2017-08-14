@@ -28,9 +28,7 @@ function Events.messageCreate(message)
 		end
 		bet=settings.bet or bet
 		if ignore[message.channel.id]==true then
-			print'ignore'
 			if message.content:sub(1,#bet+#'unignored'):lower()==bet..'unignore'then
-				print'well shit'
 				--don't return
 			else
 				return'Ignored'

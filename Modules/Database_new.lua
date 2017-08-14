@@ -18,6 +18,8 @@ Database.Default={
 		verify='false',
 		verify_role='Member',
 		verify_chan='default---channel',
+		voting='false',
+		voting_chan='default---channel',
 	},
 	Ignore={},
 	Cases={},
@@ -148,6 +150,33 @@ s_pred={
 		else
 			Database:Update(guild,nil,'verify',value)
 			return"Set verify to "..value
+		end
+	end,
+	voting=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			Database:Update(guild,nil,'voting',value)
+			return"Set audit_log to "..value
+		end
+	end,
+	voting_chan=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
+		else
+			c=guild:getChannel('name',name)
+		end
+		if c then
+			Database:Update(guild,nil,'voting_chan',c.name)
+			return"Successfully set audit log channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
 }
