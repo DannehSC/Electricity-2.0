@@ -6,6 +6,7 @@ pcall(function()
 end)
 fs=require('fs')
 discordia=require('discordia')
+enums=discordia.enums
 client=discordia.Client()
 uptime=discordia.Stopwatch()
 function FFB(t)--format for beta
@@ -35,6 +36,8 @@ function loadModule(name)
 					sendLog(hooks[FFB('Errors')],"MODULE RUNTIME",string.format("MODULE NAME: %s\nERROR: %s",name,tostring(d)))
 				end
 				return false
+			else
+				client:info('Module online: '..name)
 			end
 		end
 	else
@@ -53,4 +56,4 @@ loadModule('API')
 client:on('messageCreate',Events.messageCreate)
 client:on('messageUpdate',Events.messageUpdate)
 client:on('ready',Events.ready)
-client:run(token)
+client:run('Bot '..token)

@@ -138,6 +138,8 @@ function sendMessage(obj,con,emb)
 		obj:reply(con)
 	elseif obj.sendMessage then
 		obj:sendMessage(con)
+	elseif obj.send then
+		obj:send(con)
 	end
 	if doSend then
 		sendMessage(obj,'-'..orig:sub(1983))
@@ -146,7 +148,7 @@ end
 function getRank(member,server)
 	local rank=0
 	if server then
-		local settings=(Database.Type=='rethinkdb'and Database:Get(member.guild).Settings or Database:Get('Settings',member.guild))
+		local settings=Database:Get(member.guild).Settings
 		for i,v in pairs(settings.mod_roles)do
 			if member.guild:getRole(v)then
 				if member:getRole(v)then
@@ -182,7 +184,7 @@ function getRank(member,server)
 end
 function getPermissions(member,flag)
 	local roles={}
-	for role in member.roles do
+	for role in member.roles:iter() do
 		table.insert(roles,role)
 	end
 	if channel then
@@ -213,13 +215,13 @@ function getPermissions(member,flag)
 	return false
 end
 function getBotMember(guild)
-	return client.user:getMembership(guild)
+	return guild:getMember(client.user)
 end
 function getHighestRole(member)
 	local h=0
 	if member.guild.owner.id==member.id then h=99999 end
 	if member.id==client.owner.id then h=99999999999 end
-	for role in member.roles do
+	for role in member.roles:iter()do
 		if role.position>h then
 			h=role.position
 		end
@@ -236,7 +238,7 @@ function findMembers(guild,tofind,exacto)
 	if not guild then return{},"bad argument to #1, guild expected"end
 	if not tofind then return{},"bad argument to #2, string expected"end
 	if exacto==nil then exacto=true end
-	for member in guild.members do
+	for member in guild.members:iter()do
 		if exacto then
 			if tofind:lower()==member.name:lower()then
 				table.insert(rmembers,member)
@@ -268,7 +270,7 @@ function convertToBool(t)
 end
 function filter(message)
 	local content=message.content
-	local settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
+	local settings=Database:Get(message).Settings
 	if getRank(message.member)>1 then return end
 	if settings.anti_link then
 		if content:find('discord.gg/')or content:find('discordapp.com/oauth2/authorize?client_id=')or client:find('discordapp.com/api/oauth2/authorize?client_id=')then
@@ -362,4 +364,75 @@ function convertJoinedAtToTime(tim)
 		M='PM'
 	end
 	return(Time1..':'..Time2:sub(1,5).." "..M.." - "..Date)
+end
+function newVote(guild,member,topic,voptions)
+	local vote=Database:Get(guild).Votes
+	if vote.activeVote then
+		return"Invalid vote. [VOTE ALREADY RUNNING]"
+	end
+	voptions=voptions or{}
+	if #voptions<2 then
+		return"Invalid vote. [NOT ENOUGH OPTIONS]"
+	end
+	local vote={
+		starterID=member.id,
+		topic=topic,
+		options={}
+	}
+	for i,v in pairs(voptions)do
+		table.insert(vote.options,{count=0,option=v,voters={}})
+	end
+	return vote
+end
+function endVote(guild)
+	local vote=Database:Get(guild).Votes
+	if not vote.activeVote then
+		return"Invalid vote. [NO VOTE RUNNING]"
+	end
+	local tx="End of vote results: \n\n"..getVoteCount(guild)
+	local db=Database:Get(guild).Votes
+	db.activeVote=nil
+	Database:Update(guild)
+	return tx
+end
+function getVoteCount(guild)
+	local tx=''
+	local vote=Database:Get(guild).Votes
+	if vote.activeVote then
+		local vdata=vote.activeVote
+		tx=tx..'Vote topic: '..vdata.topic..'\n\nOptions:\n'
+		for i=1,#vdata.options do
+			local data=vdata.options[i]
+			tx=tx..'#'..i..' | Option: '..data.option..' | Votes: '..data.count..'\n'
+		end
+	else
+		return"[NO RUNNING VOTE]"
+	end
+	return tx
+end
+function addVote(guild,member,optionNum)
+	local vote=Database:Get(guild).Votes
+	if vote.activeVote then
+		local vdata=vote.activeVote
+		for i,v in pairs(vdata.options)do
+			for ii,vv in pairs(v.voters)do
+				if vv==member.id then
+					v.count=v.count-1
+					table.remove(v.voters,ii)
+					--return"Invalid vote. [ALREADY VOTED]"
+				end
+			end
+		end
+		local op=vdata.options[optionNum]
+		if op then
+			op.count=op.count+1
+			table.insert(op.voters,member.id)
+			Database:Update(guild)
+			return"Valid vote. [COUNT ADDED]\n"..getVoteCount(guild)
+		else
+			return"Invalid vote. [OPTION DOES NOT EXIST]"
+		end
+	else
+		return"Invalid vote. [NO RUNNING VOTE]"
+	end
 end

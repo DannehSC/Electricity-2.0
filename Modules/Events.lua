@@ -6,18 +6,18 @@
 Events={}
 function Events.messageCreate(message)
 	local settings,ignore={},{}
-	local bet='!'--default
-	local content,command,isServer=message.content,'',false
+	local bet=Database.Default.Settings.bet--default
+	local content,command,isServer,private=message.content,'',false,false
 	if message.author.bot==true then return end
-	if message.channel.isPrivate then
-		--do nothing, it doesn't really matter
+	if message.channel.type==enums.channelType.private then
+		private=true
 	else
-		settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
-		ignore=(Database.Type=='rethinkdb'and Database:Get(message).Ignore or Database:Get('Ignore',message))
+		settings=Database:Get(message).Settings
+		ignore=Database:Get(message).Ignore
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
-			local reply=message:reply(string.format("Your message has been filtered. Reason: %s This message will self destruct in T-10 seconds.",reason))
+			local reply=message:reply(string.format("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
 			message:delete()
 			coroutine.wrap(function()
 				timer.setTimeout(10*1000,coroutine.wrap(function()
@@ -35,7 +35,7 @@ function Events.messageCreate(message)
 			end
 		end
 	end
-	local obj=(message.member~=nil and message.member or message.author)
+	local obj=(private and message.author or message.member or message.guild:getMember(message.author))
 	local rank=getRank(obj,isServer)
 	if content==client.user.mentionString then
 		sendMessage(message,("To see info about the bot | %sabout\nTo see commands | %scmds\nTo see settings | %ssettings /l"):format(bet,bet,bet))
@@ -91,11 +91,11 @@ function Events.messageUpdate(message)
 	if message.channel.isPrivate then
 		--do nothing, it doesn't really matter
 	else
-		settings=(Database.Type=='rethinkdb'and Database:Get(message).Settings or Database:Get('Settings',message))
+		settings=Database:Get(message).Settings
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
-			local reply=message:reply(string.format("Your message has been filtered. Reason: %s This message will self destruct in T-10 seconds.",reason))
+			local reply=message:reply(string.format("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
 			message:delete()
 			coroutine.wrap(function()
 				timer.setTimeout(10*1000,coroutine.wrap(function()
@@ -107,9 +107,9 @@ function Events.messageUpdate(message)
 	end
 end
 function Events.ready()
-	client:setGameName('Mention me for help!')
-	for guild in client.guilds do
+	client:setGame('Mention me for help!')
+	for guild in client.guilds:iter()do
 		Database:Get(guild)
 	end
-	print'ready'
+	client:info'Bot is ready.'
 end
