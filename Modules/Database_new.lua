@@ -35,7 +35,9 @@ s_pred={
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
 			table.insert(settings.admin_roles,r.id)
@@ -51,7 +53,8 @@ s_pred={
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update(guild,nil,'audit_log',value)
+			settings.audit_log=value
+			Database:Update(guild)
 			return"Set audit_log to "..value
 		end
 	end,
@@ -63,10 +66,13 @@ s_pred={
 		if this then
 			c=guild:getChannel(this)
 		else
-			c=guild:getChannel('name',name)
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
 		end
 		if c then
-			Database:Update(guild,nil,'audit_log_chan',c.name)
+			settings.audit_log_chan=c.name
+			Database:Update(guild)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -80,7 +86,9 @@ s_pred={
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
 			table.insert(settings.co_owner_roles,r.id)
@@ -98,7 +106,9 @@ s_pred={
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
 			table.insert(settings.mod_roles,r.id)
@@ -116,10 +126,13 @@ s_pred={
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
-			Database:Update(guild,nil,'verify_role',r.name)
+			settings.verify_role=r.name
+			Database:Update(guild)
 			return"Successfully set verify role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..r.name..")"
@@ -133,10 +146,13 @@ s_pred={
 		if this then
 			c=guild:getChannel(this)
 		else
-			c=guild:getChannel('name',name)
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
 		end
 		if c then
-			Database:Update(guild,nil,'verify_chan',c.name)
+			settings.verify_chan=c.name
+			Database:Update(guild)
 			return"Successfully set verify channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -148,7 +164,8 @@ s_pred={
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update(guild,nil,'verify',value)
+			settings.verify=value
+			Database:Update(guild)
 			return"Set verify to "..value
 		end
 	end,
@@ -158,6 +175,7 @@ s_pred={
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
+			settings.voting=value
 			Database:Update(guild,nil,'voting',value)
 			return"Set audit_log to "..value
 		end
@@ -170,10 +188,13 @@ s_pred={
 		if this then
 			c=guild:getChannel(this)
 		else
-			c=guild:getChannel('name',name)
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
 		end
 		if c then
-			Database:Update(guild,nil,'voting_chan',c.name)
+			settings.voting_chan=c.name
+			Database:Update(guild)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"

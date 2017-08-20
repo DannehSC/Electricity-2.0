@@ -39,12 +39,6 @@ addCommand('About','Reads you info about the bot.','about',0,false,false,false,f
 	sendMessage(message,embed("Info",(tx):format(owner.username,owner.discriminator,bet,bet,bet,bet,bet,bet),colors.bright_blue),true)
 end)
 addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false,false,false,function(message,args)
-	--[[local Days,Hours,Minutes,Seconds=nil,uptime.hours,uptime.minutes,uptime.seconds
-	Days=math.floor(Hours/24)
-	Hours=math.floor(Hours-(Days*24))
-	Minutes=math.floor(Minutes-(Days*24*60)-(Hours*60))
-	Seconds=math.floor(Seconds-((Minutes-(Days*24*60)-(Hours*60))*60))
-	sendMessage(message,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",Days==1 and's'or'',Days,Hours==1 and's'or'',Hours,Minutes==1 and's'or'',Minutes,Seconds==1 and's'or'',Seconds))]]
 	local time=uptime:getTime():toTable()
 	sendMessage(message,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
 		time.days==1 and's'or'',time.days,time.hours==1 and's'or'',time.hours,time.minutes==1 and's'or'',time.minutes,time.seconds==1 and's'or'',time.seconds
@@ -57,6 +51,10 @@ addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false
 end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
 	local file=API.Misc:Cats()
+	sendMessage(message,{file=file})
+end)
+addCommand('Dog picture','Gets a dog picture',{'dog','bork','dpic'},0,false,false,false,function(message,args)
+	local file=API.Misc:Dogs()
 	sendMessage(message,{file=file})
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
@@ -147,14 +145,18 @@ end)
 addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(message,args)
 	local guild=message.guild
 	local settings=Database:Get(message).Settings
-	local chan=guild:getChannel('name',settings.verify_chan)
+	local chan=guild.textChannels:find(function(c)
+		return c.name==settings.verify_chan
+	end)
 	if not convertToBool(settings.verify)then
 		sendMessage(message,"Verify system: Not enabled")
 		return
 	end
 	if chan then
 		if message.channel.id~=chan.id then return end
-		local role=guild:getRole('name',settings.verify_role)
+		local role=guild.roles:find(function(r)
+			return r.name==settings.verify_role
+		end)
 		if role then
 			if #args[1]==0 then
 				sendMessage(message,"Sending verification code.")
@@ -216,6 +218,28 @@ addCommand('Vote','Vote handler command.|/start Starts vote /add Add vote to <op
 	end
 	sendMessage(message,getVoteCount(guild))
 end)
+addCommand('Kill','Kills a person with a super zapper!',{'kill','die','youaredeadtome','getrekt'},0,false,true,false,function(message,args)
+	coroutine.wrap(function()
+		local mem=message.member
+		local u,bpos=message.mentionedUsers:iter()()
+		if u then
+			Cooldowns[mem.id]=true
+			local function sm(t)
+				sendMessage(message,embed(nil,t,colors.bright_blue),true)
+			end
+			sm('Initializing laser...')
+			timer.sleep(5*1000)
+			sm('Aiming laser.')
+			timer.sleep(2.5*1000)
+			sm('Firing! Kaboom!')
+			timer.sleep(1000)
+			sm('Boom! You\'re dead! '..u.mentionString)
+			Cooldowns[mem.id]=nil
+		else
+			sendMessage(message,"Cannot kill member! Nobody mentioned!")
+		end
+	end)()
+end)
 addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()
 		local guild=message.guild
@@ -276,17 +300,11 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 	end)()--possibly pausing the main thread is bad
 end)
 addCommand('Kick','Kicks a member.|/d Days',{'kick','deport'},1,false,true,true,function(message,args,switches)
+	local reason
 	local bm,voice=getBotMember(message.guild),false
-	if switches['d']then
-		if tonumber(switches['d'])then
-			n=tonumber(switches['d'])
-			if n>7 then
-				n=7
-			end
-			if n<1 then
-				n=1
-			end
-		end
+	local settings=Database:Get(message).Settings
+	if switches['r']then
+		reason=switches.r
 	end
 	if not getPermissions(bm,'kickMembers')then return sendMessage(message,"Lack of permissions, kickMembers required.")end
 	local u,bpos=message.mentionedUsers:iter()(),getHighestRole(bm)
@@ -294,9 +312,13 @@ addCommand('Kick','Kicks a member.|/d Days',{'kick','deport'},1,false,true,true,
 		local member=message.guild:getMember(u)
 		if getRank(member)<getRank(message.member)then
 			if bpos>getHighestRole(member)then
-				local this=member:kick(n)
-				if not this then
-					sendMessage(message,"Cannot kick member! Unknown error!")
+				if settings.required_reason and not switches.r then
+					sendMessage(message,"Cannot kick member! Reason required!")
+				else
+					local this=member:kick(reason)
+					if not this then
+						sendMessage(message,"Cannot kick member! Unknown error!")
+					end
 				end
 			else
 				sendMessage(message,"Cannot kick member! Rank exceeds my own!")
@@ -332,6 +354,7 @@ addCommand('Voice Kick','Kicks a member from voice.',{'vkick','vdeport'},1,false
 	end
 end)
 addCommand('Ban','Bans a member.|/u Unban /l Ban list',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
+	local reason,days
 	local guild=message.guild
 	local bm,n=getBotMember(guild)
 	if not getPermissions(bm,'banMembers')then return sendMessage(message,"Lack of permissions, banMembers required.")end
@@ -363,14 +386,24 @@ addCommand('Ban','Bans a member.|/u Unban /l Ban list',{'ban','banish','youshall
 		end
 		return
 	end
+	if switches['r']then
+		reason=switches.r
+	end
+	if switches['d'] and tonumber(switches['d'])then
+		days=tonumber(switches['d'])
+	end
 	local u,bpos=message.mentionedUsers:iter()(),getHighestRole(bm)
 	if u then
 		local member=guild:getMember(u)
 		if getRank(member)<getRank(message.member)then
 			if bpos>getHighestRole(member)then
-				local this=member:ban()
-				if not this then
-					sendMessage(message,"Cannot ban member! Unknown error!")
+				if settings.required_reason and not switches.r then
+					sendMessage(message,"Cannot ban member! Reason required!")
+				else
+					local this=member:ban(reason,days)
+					if not this then
+						sendMessage(message,"Cannot ban member! Unknown error!")
+					end
 				end
 			else
 				sendMessage(message,"Cannot ban member! Rank exceeds my own!")
@@ -386,7 +419,9 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 	local guild=message.guild
 	local settings=Database:Get(message).Settings
 	if switches.s then
-		switches.s=switches.s:sub(1,#switches.s-1)
+		if switches.s:sub(#switches.s)==' 'then
+			switches.s=switches.s:sub(1,#switches.s-1)
+		end
 		if settings[switches.s]then
 			if type(settings[switches.s])=='table'then
 				return sendMessage(message,"Setting "..switches.s.." is a list setting. Please use lset/lsettings.")
@@ -419,10 +454,10 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 		end
 	elseif switches.l then
 		local this=''
-		for i,v in pairs(settings)do
-			this=this..i..' | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
+		for i,v in orderedPairs(settings)do
+			this=this..'**'..i..'** | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
 		end
-		sendMessage(message,"Settings list:\n"..this)
+		sendMessage(message,embed("Settings list",this),true)
 	else
 		sendMessage(message,[[
 			How to use settings menu:
@@ -438,7 +473,10 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 	local settings=Database:Get(message).Settings
 	local fmt=string.format
 	if switches.s then
-		switches.s=switches.s:sub(1,#switches.s-1)
+		print('"'..switches.s..'"')
+		if switches.s:sub(#switches.s)==' 'then
+			switches.s=switches.s:sub(1,#switches.s-1)
+		end
 		if settings[switches.s]then
 			if type(settings[switches.s])~='table'then
 				return sendMessage(message,"Setting "..switches.s.." is not a list setting. Please use the set/settings command.")

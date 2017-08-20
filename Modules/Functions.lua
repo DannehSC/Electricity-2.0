@@ -9,12 +9,12 @@ timer=require("timer")
 json=require("json")
 uv=require("uv")
 colors={
-	red=color(255,0,0).value,
-	green=color(0,255,0).value,
-	blue=color(0,0,255).value,
-	bright_blue=color(0,200,255).value,
-	orange=color(255,160,0).value,
-	yellow=color(255,255,0).value,
+	red=color(255,0,0):toHex(),
+	blue=color(0,0,255):toHex(),
+	green=color(0,255,0):toHex(),
+	orange=color(255,160,0):toHex(),
+	yellow=color(255,255,0):toHex(),
+	bright_blue=color(0,200,255):toHex(),
 }
 function __genOrderedIndex( t )
 	local orderedIndex = {}
@@ -119,7 +119,7 @@ function embed(title,desc,color,fields)
 	local emb={}
 	set(title,emb,'title')
 	set(desc,emb,'description')
-	set(color,emb,'color')
+	--set(color,emb,'color')
 	set(fields,emb,'fields')
 	return emb
 end
@@ -135,15 +135,22 @@ function sendMessage(obj,con,emb)
 		con={embed=con}
 	end
 	if obj.reply then
-		obj:reply(con)
+		return obj:reply(con)
 	elseif obj.sendMessage then
-		obj:sendMessage(con)
+		return obj:sendMessage(con)
 	elseif obj.send then
-		obj:send(con)
+		return obj:send(con)
 	end
 	if doSend then
 		sendMessage(obj,'-'..orig:sub(1983))
 	end
+end
+function sendTempMessage(tab,seconds)
+	coroutine.wrap(function()
+		local msg=sendMessage(unpack(tab))
+		timer.sleep(seconds*1000)
+		msg:delete()
+	end)()
 end
 function getRank(member,server)
 	local rank=0

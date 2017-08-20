@@ -3,6 +3,7 @@
 	TODO:
 		Add deleted message log.
 ]]
+Cooldowns={}
 Events={}
 function Events.messageCreate(message)
 	local settings,ignore={},{}
@@ -53,6 +54,7 @@ function Events.messageCreate(message)
 		for name,tab in pairs(Commands)do
 			for ind,cmd in pairs(tab.Commands)do
 				if command:lower()==cmd:lower()then
+					if Cooldowns[obj.id]then sendTempMessage({message,embed(nil,"You're on cooldown!",colors.bright_blue),true},2)message:delete()return end
 					if tab.serverOnly then
 						if not isServer then
 							sendMessage(message,'Command error:\nThis command does not work in DMs.')

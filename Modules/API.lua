@@ -3,6 +3,7 @@ API={
 	Endpoints={
 		['DBots_Stats']='https://bots.discord.pw/api/bots/%s/stats',
 		['Meow']='http://random.cat/meow',
+		['Bork']='https://dog.ceo/api/breeds/image/random',
 		['Urban']='https://api.urbandictionary.com/v0/define?term=%s',
 	},
 }
@@ -19,7 +20,6 @@ function API:Post(End,Fmt,...)
 			point=p
 		end
 	end
-	print(point,...)
 	return http.request('POST',point,...)
 end
 function API:Get(End,Fmt)
@@ -45,6 +45,13 @@ function API.Misc:Cats()
 		return'ERROR: Unable to decode JSON [API.Misc:Cats]'
 	end
 	return json.decode(request).file
+end
+function API.Misc:Dogs()
+	local requestdata,request=API:Get('Bork')
+	if not json.decode(request)then
+		return'ERROR: Unable to decode JSON [API.Misc:Dogs]'
+	end
+	return json.decode(request).message
 end
 function API.Misc:Urban(input,d)
 	if d then

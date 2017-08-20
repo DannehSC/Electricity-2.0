@@ -48,6 +48,7 @@ function loadModule(name)
 		return false
 	end
 end
+loadModule('Utilities')
 loadModule('Functions')
 loadModule('Database_new')
 loadModule('Commands')
