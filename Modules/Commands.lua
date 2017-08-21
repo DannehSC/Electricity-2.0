@@ -20,6 +20,12 @@ end)
 addCommand('Beep','Beeps the bot.','beep',0,false,false,false,function(message,args)
 	sendMessage(message,"Boop!")
 end)
+addCommand('Join','Sends a link to join the official Electricity guild!','join',0,false,false,false,function(message,args)
+	sendMessage(message.author,embed(nil,"[Invite](https://discordapp.com/invite/KCMxtK8)",colors.yellow),true)
+end)
+addCommand('Join2','Sends a raw link to join the official Electricity guild!','join2',0,false,false,false,function(message,args)
+	sendMessage(message.author,"https://discordapp.com/invite/KCMxtK8")
+end)
 addCommand('About','Reads you info about the bot.','about',0,false,false,false,function(message,args)
 	local tx=''
 	local owner=client.owner
@@ -433,12 +439,9 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 						sendMessage(message,data)
 					end
 				else
-					if Database.Type=='rethinkdb'then
-						Database:GetCached(guild).Settings[switches.s]=switches.v
-						Database:Update(guild)
-					else
-						Database:Update('Settings',guild,switches.s,switches.v)
-					end
+					Database:GetCached(guild).Settings[switches.s]=switches.v
+					Database:Update(guild)
+					sendMessage(message,embed(nil,string.format("Set %s to %s",switches.s,switches.v),colors.bright_blue),true)
 				end
 			elseif switches.d then
 				if descriptions[switches.s]then
@@ -473,7 +476,6 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 	local settings=Database:Get(message).Settings
 	local fmt=string.format
 	if switches.s then
-		print('"'..switches.s..'"')
 		if switches.s:sub(#switches.s)==' 'then
 			switches.s=switches.s:sub(1,#switches.s-1)
 		end
@@ -486,21 +488,15 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 					s_pred[switches.s](switches.a)
 				else
 					table.insert(settings[switches.s],switches.a)
-					if Database.Type=='rethinkdb'then
-						Database:Update(guild)
-					else
-						Database:Update('Settings',guild)
-					end
+					Database:Update(guild)
+					sendMessage(message,embed(nil,string.format("Added %s to %s",switches.a,switches.s),colors.bright_blue),true)
 				end
 			elseif switches.r then
 				for i,v in pairs(settings[switches.s])do
 					if v:lower()==switches.r:lower()then
 						settings[switches.s][i]=nil
-						if Database.Type=='rethinkdb'then
-							Database:Update(guild)
-						else
-							Database:Update('Settings',guild)
-						end
+						Database:Update(guild)
+						sendMessage(message,embed(nil,string.format("Removed %s from %s",switches.a,switches.s),colors.bright_blue),true)
 						return
 					end
 				end
@@ -508,12 +504,8 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 			elseif switches.clear then
 				if switches.confirm then
 					sendMessage(message,fmt('Clearing %s.',settings.s))
-					if Database.Type=='rethinkdb'then
-						Database:GetCached(guild).Settings=Database.Default
-						Database:Update(guild)
-					else
-						Database:Update('Settings',guild,switches.s,switches.v)
-					end
+					Database:GetCached(guild).Settings=Database.Default
+					Database:Update(guild)
 				else
 					sendMessage(message,'Use the /confirm switch to confirm this clearing.')
 				end
