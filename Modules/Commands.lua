@@ -15,10 +15,10 @@ function addCommand(name,desc,cmds,rank,multi_arg,server_only,switches,func)
 	Commands[name]={Name=name,Description=desc,Commands=(type(cmds)=='table'and cmds or{cmds}),Rank=rank,Multi=multi_arg,serverOnly=server_only,Switches=switches,Function=func}
 end
 addCommand('Ping','Pings the bot.','ping',0,false,false,false,function(message,args)
-	sendMessage(message,"Pong!")
+	sendMessage(message,embed(nil,"Pong!",colors.green),true)
 end)
 addCommand('Beep','Beeps the bot.','beep',0,false,false,false,function(message,args)
-	sendMessage(message,"Boop!")
+	sendMessage(message,embed(nil,"Boop!",colors.green),true)
 end)
 addCommand('Join','Sends a link to join the official Electricity guild!','join',0,false,false,false,function(message,args)
 	sendMessage(message.author,embed(nil,"[Invite](https://discordapp.com/invite/KCMxtK8)",colors.yellow),true)
@@ -36,19 +36,40 @@ addCommand('About','Reads you info about the bot.','about',0,false,false,false,f
 	end
 	append("I am the bot known as Electricity 2.0.")
 	append("I was created by %s#%d (DannehSC on Github)")
-	append("To see the commands list: Please say %scmds or %scommands")
-	append("To see nerd info: Please say %sninfo")
-	append("To see uptime: Please say %suptime")
-	append("To see the settings: Please say %ssettings /l")
-	append("If you are in a guild, you can see info about the guild. Please say %sginfo")
+	append("To see the commands list: Please say `%scmds` or `%scommands`")
+	append("To see nerd info: Please say `%sninfo`")
+	append("To see uptime: Please say `%suptime`")
+	append("To see the settings: Please say `%ssettings /l`")
+	append("To join the support server: `%sjoin` or `%sjoin2`")
+	append("If you are in a guild, you can see info about the guild. Please say `%sginfo`")
 	append("Thank you for using Electricity!",true)
-	sendMessage(message,embed("Info",(tx):format(owner.username,owner.discriminator,bet,bet,bet,bet,bet,bet),colors.bright_blue),true)
+	sendMessage(message,embed("Info",(tx):format(owner.username,owner.discriminator,bet,bet,bet,bet,bet,bet,bet,bet),colors.bright_blue),true)
+end)
+addCommand('User Info','Fetches info about a user','uinfo',0,false,true,false,function(message,args)
+	local u=message.mentionedUsers:iter()()
+	if u then
+		--idk
+	else
+		u=message.author
+	end
+	local m=message.guild:getMember(u)
+	if not m then
+		return sendMessage(message,"[ERROR] Member not found. Please contact support through the `join` cmd or `join2` cmd.")
+	end
+	sendMessage(message,embed("User Info",nil,colors.yellow,{
+		{name="Username",value=u.username,inline=true},
+		{name="Discriminator",value=u.discriminator,inline=true},
+		{name="Identification",value=u.id,inline=true},
+		{name="User Rank",value=getRank(m,true),inline=true},
+		{name="Joined guild at",value=convertJoinedAtToTime(m.joinedAt),inline=true},
+		{name="Joined discord at",value=convertJoinedAtToTime(u.timestamp),inline=true},
+	}),true)
 end)
 addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false,false,false,function(message,args)
 	local time=uptime:getTime():toTable()
-	sendMessage(message,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
+	sendMessage(message,embed(nil,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
 		time.days==1 and's'or'',time.days,time.hours==1 and's'or'',time.hours,time.minutes==1 and's'or'',time.minutes,time.seconds==1 and's'or'',time.seconds
-	))
+	),colors.blue),true)
 end)
 addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false,false,function(message,args)
 	sendMessage(message,embed('Links',
@@ -57,14 +78,14 @@ addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false
 end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
 	local file=API.Misc:Cats()
-	sendMessage(message,{file=file})
+	sendMessage(message,file)
 end)
 addCommand('Dog picture','Gets a dog picture',{'dog','bork','dpic'},0,false,false,false,function(message,args)
 	local file=API.Misc:Dogs()
-	sendMessage(message,{file=file})
+	sendMessage(message,file)
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
-	sendMessage(message,"The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>")
+	sendMessage(message,embed("Commands","The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>",colors.yellow),true)
 end)
 addCommand('Calculate','Calculates math.',{'calc','calculate'},0,false,false,false,function(message,args)
 	if #args[1]<1 then return sendMessage(message,embed(nil,"You must specify what to calculate.",colors.red),true)end
@@ -97,7 +118,7 @@ addCommand('Urban','Fetches urban dictionary definitions.|/d Definition number',
 		d=tonumber(switches['d'])
 	end
 	local data=API.Misc:Urban(args[1],d)
-	sendMessage(message,data)
+	sendMessage(message,embed(nil,data,colors.blue),true)
 end)
 addCommand('Nerdy info','Info for nerds.','ninfo',0,false,false,false,function(message,args)
 	local ts=tostring
@@ -155,7 +176,7 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 		return c.name==settings.verify_chan
 	end)
 	if not convertToBool(settings.verify)then
-		sendMessage(message,"Verify system: Not enabled")
+		sendMessage(message,embed("Verification system","Not enabled",colors.red),true)
 		return
 	end
 	if chan then
@@ -165,7 +186,7 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 		end)
 		if role then
 			if #args[1]==0 then
-				sendMessage(message,"Sending verification code.")
+				sendMessage(message,embed(nil,"Sending verification code.",colors.yellow),true)
 				local a,code,stuff=math.random(1,2),enclib.Randomizer(100)
 				verification_codes[code]=true
 				code='```'..code..'```'
@@ -179,15 +200,15 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 				sendMessage(message.author,stuff,true)
 			else
 				if verification_codes[args[1]]then
-					sendMessage(message,"Verify system: Code confirmed.")
+					sendMessage(message,embed("Verification system","Code confirmed.",colors.green),true)
 					message.member:addRole(role)
 					verification_codes[args[1]]=nil
 				else
-					sendMessage(message,"Verify system: Invalid code")
+					sendMessage(message,embed("Verification system","Invalid code",colors.red),true)
 				end
 			end
 		else
-			sendMessage(message,"Verify system: Role not found")
+			sendMessage(message,embed("Verification system","Role not found",colors.red),true)
 		end
 	end
 end)
@@ -196,7 +217,7 @@ addCommand('Vote','Vote handler command.|/start Starts vote /add Add vote to <op
 	local settings=Database:Get(message).Settings
 	local ctb=convertToBool
 	if ctb(settings.voting)==true and guild:getChannel('name',settings.voting_chan).id~=message.channel.id then 
-		return sendMessage(message,"Invalid vote. [WRONG CHANNEL]")
+		return sendMessage(message,embed(nil,"Invalid vote. [WRONG CHANNEL]",colors.red),true)
 	end
 	if switches.start then
 		if ctb(settings.voting)==true then
@@ -212,22 +233,22 @@ addCommand('Vote','Vote handler command.|/start Starts vote /add Add vote to <op
 				sendMessage(message,getVoteCount(guild))
 			end
 		else
-			sendMessage(message,"Invalid vote. [VOTING NOT ENABLED]")
+			sendMessage(message,embed(nil,"Invalid vote. [VOTING NOT ENABLED]",colors.red),true)
 		end
 		return
 	elseif switches.add then
-		return sendMessage(message,addVote(guild,message.member,tonumber(switches.add)))
+		return sendMessage(message,embed(nil,addVote(guild,message.member,tonumber(switches.add)),colors.blue),true)
 	elseif switches.h then
-		return sendMessage(message,"Welcome to the help menu. Please separate options using `,`.")
+		return sendMessage(message,embed(nil,"Welcome to the help menu. Please separate options using `,`",colors.green),true)
 	elseif switches.stop then
-		return sendMessage(message,endVote(guild))
+		return sendMessage(message,embed(nil,endVote(guild),colors.blue),true)
 	end
-	sendMessage(message,getVoteCount(guild))
+	sendMessage(message,embed(nil,getVoteCount(guild),colors.blue),true)
 end)
 addCommand('Kill','Kills a person with a super zapper!',{'kill','die','youaredeadtome','getrekt'},0,false,true,false,function(message,args)
 	coroutine.wrap(function()
 		local mem=message.member
-		local u,bpos=message.mentionedUsers:iter()()
+		local u=message.mentionedUsers:iter()()
 		if u then
 			Cooldowns[mem.id]=true
 			local function sm(t)
@@ -242,7 +263,7 @@ addCommand('Kill','Kills a person with a super zapper!',{'kill','die','youaredea
 			sm('Boom! You\'re dead! '..u.mentionString)
 			Cooldowns[mem.id]=nil
 		else
-			sendMessage(message,"Cannot kill member! Nobody mentioned!")
+			sendMessage(message,embed(nil,"Cannot kill member! Nobody mentioned!",colors.red),true)
 		end
 	end)()
 end)
@@ -485,7 +506,7 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 			end
 			if switches.a then
 				if s_pred[switches.s]then
-					s_pred[switches.s](switches.a)
+					s_pred[switches.s](switches.a,message)
 				else
 					table.insert(settings[switches.s],switches.a)
 					Database:Update(guild)
@@ -595,4 +616,7 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 end)
 addCommand('test','test','test',4,false,false,false,function(message,args)
 	error('error')
+end)
+addCommand('restart','restart','restart',4,false,false,false,function(message,args)
+	loadModule(args[1])
 end)

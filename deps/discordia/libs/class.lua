@@ -22,6 +22,10 @@ function default:__tostring()
 	return 'instance of class ' .. self.__name
 end
 
+function default:__hash()
+	return self
+end
+
 function default:__pairs()
 	local getters, k, v = self.__getters
 	return function()
@@ -112,12 +116,11 @@ return setmetatable({
 	class.__getters = getters
 
 	local pool = {}
-	local n = 1
+	local n = #pool
 
 	function class:__index(k)
-		local getter = getters[k]
-		if getter then
-			return getter(self)
+		if getters[k] then
+			return getters[k](self)
 		elseif pool[k] then
 			return rawget(self, pool[k])
 		else
@@ -128,11 +131,12 @@ return setmetatable({
 	function class:__newindex(k, v)
 		if class[k] or getters[k] then
 			return error(format('Cannot overwrite protected property: %s.%s', name, k))
+		elseif k:find('_', 1, true) ~= 1 then
+			return error(format('Cannot write property to object without leading underscore: %s.%s', name, k))
 		else
-			assert(k:find('_') == 1) -- debug
 			if not pool[k] then
-				pool[k] = n
 				n = n + 1
+				pool[k] = n
 			end
 			return rawset(self, pool[k], v)
 		end

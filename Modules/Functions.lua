@@ -1,6 +1,6 @@
 --FUNCTIONS.LUA--
 operatingsystem=require('ffi').os
-color=discordia.Color
+color=discordia.Color.fromRGB
 mutex=discordia.Mutex()
 query=require("querystring")
 enclib=require("encrypter")
@@ -9,12 +9,12 @@ timer=require("timer")
 json=require("json")
 uv=require("uv")
 colors={
-	red=color(255,0,0):toHex(),
-	blue=color(0,0,255):toHex(),
-	green=color(0,255,0):toHex(),
-	orange=color(255,160,0):toHex(),
-	yellow=color(255,255,0):toHex(),
-	bright_blue=color(0,200,255):toHex(),
+	red=color(255,0,0).value,
+	blue=color(0,0,255).value,
+	green=color(0,255,0).value,
+	orange=color(255,160,0).value,
+	yellow=color(255,255,0).value,
+	bright_blue=color(0,200,255).value,
 }
 function __genOrderedIndex( t )
 	local orderedIndex = {}
@@ -119,7 +119,7 @@ function embed(title,desc,color,fields)
 	local emb={}
 	set(title,emb,'title')
 	set(desc,emb,'description')
-	--set(color,emb,'color')
+	set(color,emb,'color')
 	set(fields,emb,'fields')
 	return emb
 end
