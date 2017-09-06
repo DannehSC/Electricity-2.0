@@ -40,6 +40,9 @@ s_pred={
 			end)
 		end
 		if r then
+			if checkForCopies(settings.admin_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
 			table.insert(settings.admin_roles,r.id)
 			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
@@ -91,6 +94,9 @@ s_pred={
 			end)
 		end
 		if r then
+			if checkForCopies(settings.co_owner_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
 			table.insert(settings.co_owner_roles,r.id)
 			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
@@ -111,6 +117,9 @@ s_pred={
 			end)
 		end
 		if r then
+			if checkForCopies(settings.mod_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
 			table.insert(settings.mod_roles,r.id)
 			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
@@ -131,7 +140,7 @@ s_pred={
 			end)
 		end
 		if r then
-			settings.verify_role=r.name
+			settings.verify_role=r.id
 			Database:Update(guild)
 			return"Successfully set verify role! ("..r.name..")"
 		else

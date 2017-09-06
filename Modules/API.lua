@@ -42,14 +42,14 @@ API.Misc={}
 function API.Misc:Cats()
 	local requestdata,request=API:Get('Meow')
 	if not json.decode(request)then
-		return'ERROR: Unable to decode JSON [API.Misc:Cats]'
+		return nil,'ERROR: Unable to decode JSON [API.Misc:Cats]'
 	end
 	return json.decode(request).file
 end
 function API.Misc:Dogs()
 	local requestdata,request=API:Get('Bork')
 	if not json.decode(request)then
-		return'ERROR: Unable to decode JSON [API.Misc:Dogs]'
+		return nil,'ERROR: Unable to decode JSON [API.Misc:Dogs]'
 	end
 	return json.decode(request).message
 end
@@ -82,9 +82,9 @@ function API.Misc:Urban(input,d)
 			end
 			return t
 		else
-			return"ERROR: unable to json decode"
+			return nil,"ERROR: unable to json decode"
 		end
 	else
-		return"ERROR: unable to urlencode"
+		return nil,"ERROR: unable to urlencode"
 	end
 end

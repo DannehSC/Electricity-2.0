@@ -6,6 +6,7 @@
 Cooldowns={}
 Events={}
 function Events.messageCreate(message)
+	if not _G.ready then return end
 	local settings,ignore={},{}
 	local bet=Database.Default.Settings.bet--default
 	local content,command,isServer,private=message.content,'',false,false
@@ -87,6 +88,7 @@ function Events.messageCreate(message)
 	end
 end
 function Events.messageUpdate(message)
+	if not _G.ready then return end
 	local settings={}
 	local isServer=false
 	if message.author.bot==true then return end
@@ -109,9 +111,30 @@ function Events.messageUpdate(message)
 	end
 end
 function Events.ready()
+	local waiting,already_set=0,false
+	local function checked()
+		local result=pcall(function()
+			local db=Database._raw_database
+			local a,b=http.request('GET',string.format('%s://%s:5000/guilds/test?key=%s',db.method,db.ip,db.key))
+		end)
+		--[[if result==false then
+			waiting=waiting+1
+		end]]
+		return result
+	end
+	--client:setGame('Loading...')
+	repeat
+		print'Waiting for python wrapper...'
+		--[[if waiting>2 and not already_set then
+			client:setGame('Loading...')
+			already_set=true
+		end]]
+		timer.sleep(500)
+	until checked()==true
 	client:setGame('Mention me for help!')
 	for guild in client.guilds:iter()do
 		Database:Get(guild)
 	end
 	client:info'Bot is ready.'
+	_G.ready=true
 end

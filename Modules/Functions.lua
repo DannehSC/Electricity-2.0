@@ -158,22 +158,25 @@ function getRank(member,server)
 	if server then
 		local settings=Database:Get(member.guild).Settings
 		for i,v in pairs(settings.mod_roles)do
-			if member.guild:getRole(v)then
-				if member:getRole(v)then
+			local o=member.guild:getRole(v)
+			if o then
+				if member:hasRole(o)then
 					rank=1
 				end
 			end
 		end
 		for i,v in pairs(settings.admin_roles)do
-			if member.guild:getRole(v)then
-				if member:getRole(v)then
+			local o=member.guild:getRole(v)
+			if o then
+				if member:hasRole(o)then
 					rank=2
 				end
 			end
 		end
 		for i,v in pairs(settings.co_owner_roles)do
-			if member.guild:getRole(v)then
-				if member:getRole(v)then
+			local o=member.guild:getRole(v)
+			if o then
+				if member:hasRole(o)then
 					rank=3
 				end
 			end
@@ -442,5 +445,12 @@ function addVote(guild,member,optionNum)
 		end
 	else
 		return"Invalid vote. [NO RUNNING VOTE]"
+	end
+end
+function checkForCopies(tab,value)
+	for i,v in pairs(tab)do
+		if v==value then
+			return true
+		end
 	end
 end

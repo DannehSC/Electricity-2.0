@@ -45,6 +45,17 @@ addCommand('About','Reads you info about the bot.','about',0,false,false,false,f
 	append("Thank you for using Electricity!",true)
 	sendMessage(message,embed("Info",(tx):format(owner.username,owner.discriminator,bet,bet,bet,bet,bet,bet,bet,bet),colors.bright_blue),true)
 end)
+addCommand('Bot Info','Fetches info about the bot!','binfo',0,false,false,false,function(message,args)
+	local count=0
+	for g in client.guilds:iter()do	
+		count=count+g.totalMemberCount
+	end
+	sendMessage(message,embed("Bot info",nil,colors.yellow,{
+		{name="Guild count",value=#client.guilds,inline=true},
+		{name="Shard count",value=client.shardCount,inline=true},
+		{name="Member count",value=count,inline=true},
+	}),true)
+end)
 addCommand('User Info','Fetches info about a user','uinfo',0,false,true,false,function(message,args)
 	local u=message.mentionedUsers:iter()()
 	if u then
@@ -77,12 +88,12 @@ addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false
 	colors.yellow),true)
 end)
 addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,false,false,function(message,args)
-	local file=API.Misc:Cats()
-	sendMessage(message,file)
+	local file,err=API.Misc:Cats()
+	sendMessage(message,file or err)
 end)
 addCommand('Dog picture','Gets a dog picture',{'dog','bork','dpic'},0,false,false,false,function(message,args)
-	local file=API.Misc:Dogs()
-	sendMessage(message,file)
+	local file,err=API.Misc:Dogs()
+	sendMessage(message,file or err)
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
 	sendMessage(message,embed("Commands","The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>",colors.yellow),true)
@@ -117,8 +128,8 @@ addCommand('Urban','Fetches urban dictionary definitions.|/d Definition number',
 	if switches['d']~=nil and tonumber(switches['d'])then
 		d=tonumber(switches['d'])
 	end
-	local data=API.Misc:Urban(args[1],d)
-	sendMessage(message,embed(nil,data,colors.blue),true)
+	local data,err=API.Misc:Urban(args[1],d)
+	sendMessage(message,embed(nil,data or err,colors.blue),true)
 end)
 addCommand('Nerdy info','Info for nerds.','ninfo',0,false,false,false,function(message,args)
 	local ts=tostring
@@ -479,6 +490,8 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 	elseif switches.l then
 		local this=''
 		for i,v in orderedPairs(settings)do
+			local o=guild:getRole(v)or guild:getChannel(v)
+			if o then v=o.name end
 			this=this..'**'..i..'** | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
 		end
 		sendMessage(message,embed("Settings list",this),true)
@@ -506,7 +519,10 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 			end
 			if switches.a then
 				if s_pred[switches.s]then
-					s_pred[switches.s](switches.a,message)
+					local response=s_pred[switches.s](switches.a,message)
+					if response then
+						sendMessage(message,embed(nil,response,colors.bright_blue),true)
+					end
 				else
 					table.insert(settings[switches.s],switches.a)
 					Database:Update(guild)
@@ -514,30 +530,49 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 				end
 			elseif switches.r then
 				for i,v in pairs(settings[switches.s])do
-					if v:lower()==switches.r:lower()then
-						settings[switches.s][i]=nil
-						Database:Update(guild)
-						sendMessage(message,embed(nil,string.format("Removed %s from %s",switches.a,switches.s),colors.bright_blue),true)
-						return
+					local o=guild:getRole(v)or guild:getChannel(v)
+					if o~=nil then
+						if o.name:lower()==switches.r:lower()then
+							settings[switches.s][i]=nil
+							Database:Update(guild)
+							sendMessage(message,embed(nil,string.format("Removed %s from %s",switches.r,switches.s),colors.bright_blue),true)
+							return
+						end
+					else
+						if v:lower()==switches.r:lower()then
+							settings[switches.s][i]=nil
+							Database:Update(guild)
+							sendMessage(message,embed(nil,string.format("Removed %s from %s",switches.r,switches.s),colors.bright_blue),true)
+							return
+						end
 					end
 				end
 				sendMessage(message,'Not found! Value: '..switches.r)
 			elseif switches.clear then
 				if switches.confirm then
 					sendMessage(message,fmt('Clearing %s.',settings.s))
-					Database:GetCached(guild).Settings=Database.Default
+					Database:GetCached(guild).Settings[settings.s]=Database.Default.Settings[settings.s]
 					Database:Update(guild)
 				else
 					sendMessage(message,'Use the /confirm switch to confirm this clearing.')
 				end
 			elseif switches.d then
 				if descriptions[switches.s]then
-					sendMessage(message,fmt("Setting: %s | Description: %s",switches.s,descriptions[switches.s]))
+					sendMessage(message,embed(nil,fmt("Setting: %s | Description: %s",switches.s,descriptions[switches.s])),true)
 				else
-					sendMessage(message,fmt("Setting: %s | Description: %s",switches.s,"No description found." ))
+					sendMessage(message,embed(nil,fmt("Setting: %s | Description: %s",switches.s,"No description found.")),true)
 				end
 			else
-				sendMessage(message,"Setting: "..switches.s.." | Value: "..table.concat(settings[switches.s],', '))
+				local tx=''
+				for i,v in pairs(settings[switches.s])do
+					local o=guild:getRole(v)or guild:getChannel(v)
+					if o then
+						tx=tx..o.name..', '
+					else
+						tx=tx..v..', '
+					end
+				end
+				sendMessage(message,embed(nil,"Setting: "..switches.s.." | Value: "..tx,colors.bright_blue),true)
 			end
 		else
 			return sendMessage(message,"No setting found: "..switches.s)

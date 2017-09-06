@@ -20,7 +20,7 @@ function loadModule(name)
 	name=name..'.lua'
 	local data,others=fs.readFileSync('Modules/'..name)
 	if data then
-		local a,b=loadstring(data)
+		local a,b=loadstring(data,name)
 		if not a then
 			print("<SYNTAX> ERROR LOADING "..name.."\nERROR:"..b)
 			if sendLog then
