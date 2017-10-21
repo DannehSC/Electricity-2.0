@@ -3,10 +3,10 @@
 	TODO:
 		Add deleted message log.
 ]]
+local fmt=string.format
 Cooldowns={}
 Events={}
 function Events.messageCreate(message)
-	if not _G.ready then return end
 	local settings,ignore={},{}
 	local bet=Database.Default.Settings.bet--default
 	local content,command,isServer,private=message.content,'',false,false
@@ -19,7 +19,7 @@ function Events.messageCreate(message)
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
-			local reply=message:reply(string.format("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
+			local reply=message:reply(fmt("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
 			message:delete()
 			coroutine.wrap(function()
 				timer.setTimeout(10*1000,coroutine.wrap(function()
@@ -39,7 +39,7 @@ function Events.messageCreate(message)
 	end
 	local obj=(private and message.author or message.member or message.guild:getMember(message.author))
 	local rank=getRank(obj,isServer)
-	if content==client.user.mentionString then
+	if content:find(client.user.mentionString)then
 		sendMessage(message,("To see info about the bot | %sabout\nTo see commands | %scmds\nTo see settings | %ssettings /l"):format(bet,bet,bet))
 	end
 	if content:sub(1,#bet)==bet then
@@ -77,7 +77,21 @@ function Events.messageCreate(message)
 						local a,b=pcall(tab.Function,message,args,switches)
 						if not a then
 							sendMessage(message,'Command error:\n'..b)
-							sendLog(hooks[FFB('Errors')],"**COMMAND ERROR**",string.format("Error message: %s\n\nGuild id: %s\n\nChannel id: %s\n\nUser id: %s",b,isServer and message.guild.id or"PRIVATE CHANNEL",message.channel.id,message.author.id))
+							sendLog(hooks[FFB('Errors')],"**COMMAND ERROR**",fmt("Error message: %s\n\nGuild id: %s\n\nChannel id: %s\n\nUser id: %s",b,isServer and message.guild.id or"PRIVATE CHANNEL",message.channel.id,message.author.id))
+						end
+						local g=message.guild
+						if g then
+							local m=message.member
+							local c=message.channel
+							sendAudit(g,embed('Audit Log',nil,colors.blue,{
+								{name='Name',value=m.username,inline=true},
+								{name='Descriminator',value=m.discriminator,inline=true},
+								{name='Id',value=m.id,inline=true},
+								{name='Shard',value=g.shardId,inline=true},
+								{name='Channel',value=c.name,inline=true},
+								{name='Chan ID',value=c.id,inline=true},
+								{name='Message',value=tostring(message.content)},
+							},{timestamp=getTimestamp()}),true)
 						end
 					else
 						sendMessage(message,'Command error:\nYour rank is not high enough to run this command')
@@ -88,7 +102,6 @@ function Events.messageCreate(message)
 	end
 end
 function Events.messageUpdate(message)
-	if not _G.ready then return end
 	local settings={}
 	local isServer=false
 	if message.author.bot==true then return end
@@ -99,7 +112,7 @@ function Events.messageUpdate(message)
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
-			local reply=message:reply(string.format("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
+			local reply=message:reply(fmt("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
 			message:delete()
 			coroutine.wrap(function()
 				timer.setTimeout(10*1000,coroutine.wrap(function()
@@ -110,30 +123,76 @@ function Events.messageUpdate(message)
 		end
 	end
 end
-function Events.ready()
-	local waiting,already_set=0,false
-	local function checked()
-		local result=pcall(function()
-			local db=Database._raw_database
-			local a,b=http.request('GET',string.format('%s://%s:5000/guilds/test?key=%s',db.method,db.ip,db.key))
-		end)
-		--[[if result==false then
-			waiting=waiting+1
-		end]]
-		return result
+function Events.guildCreate(guild)
+	for g in client.guilds:iter()do
+		local chan=g.textChannels:get('370801361220141057')
+		if chan then
+			sendMessage(chan,embed('New guild!',fmt('Guild name: %s\nGuild ID: %s\nGuild member count: %s\n\nOwner name: %s\nOwner ID: %s',
+				guild.name,guild.id,tostring(guild.totalMemberCount),tostring(guild.owner.name..'#'..guild.owner.discriminator),guild.owner.id
+			),colors.blue),true)
+		end
 	end
-	--client:setGame('Loading...')
-	repeat
-		print'Waiting for python wrapper...'
-		--[[if waiting>2 and not already_set then
-			client:setGame('Loading...')
-			already_set=true
-		end]]
-		timer.sleep(500)
-	until checked()==true
+end
+function Events.guildDelete(guild)
+	for g in client.guilds:iter()do
+		local chan=g.textChannels:get('370801361220141057')
+		if chan then
+			sendMessage(chan,embed('Left guild! :(',fmt('Guild name: %s\nGuild ID: %s\n\nOwner name: %s\nOwner ID: %s',
+				guild.name,guild.id,tostring(guild.owner.name..'#'..guild.owner.discriminator),guild.owner.id
+			),colors.blue),true)
+		end
+	end
+end
+function Events.Timing(data)--todo: bypass time mutes with global mute
+	local args=string.split(data,'||')
+	if args[1]=='UNMUTE'then
+		local g=client:getGuild(args[2])
+		if g then
+			if args[3]=='all'then
+				for c in guild.textChannels:iter()do
+					local u=client:getUser(args[4])
+					if u then
+						local m=g:getMember(u.id)
+						unmute(m,c)
+					else
+						print"wot[4]"
+					end
+				end
+			else
+				local c=client:getChannel(args[3])
+				if c then
+					local u=client:getUser(args[4])
+					if u then
+						local m=g:getMember(u.id)
+					else
+						print"wot[3]"
+					end
+				else
+					print"wot[2]"
+				end
+			end
+		else
+			print"wot"
+		end
+	end
+end
+function Events.ready()
+	Timing:on(Events.Timing)
 	client:setGame('Mention me for help!')
 	for guild in client.guilds:iter()do
 		Database:Get(guild)
+		Timing:load(guild)
+		local chan=guild.textChannels:get('370801361220141057')
+		if chan then
+			_G.infoChannel=chan
+		end
+	end
+	if not _G.beta then
+		timer.setInterval(360000,function()
+			coroutine.wrap(API.Carbon.Stats_Update)({
+				servercount=#client.guilds,
+			})
+		end)
 	end
 	client:info'Bot is ready.'
 	_G.ready=true

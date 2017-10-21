@@ -1,61 +1,56 @@
---Database.lua
-local firebase=require('luvit-firebase')
-local DBData=require('./database.lua')
+--NEW DATABASE--
+local data=require('./database.lua')
+local rethink=require('luvit-reql')
+local conn=rethink.connect(data)
+local ts,fmt=tostring,string.format
 Database={
+	_raw_database=rethink,
+	_conn=conn,
 	Cache={},
-	Databases={},
-	Type='firebase',
+	Type='rethinkdb',
 }
-Database.Defaults={
-	['Settings']={
+Database.Default={
+	Settings={
 		admin_roles={},
 		audit_log='false',
 		audit_log_chan='default---channel',
-		bet='!',
+		bet='elec!',
 		banned_phrases={},
+		co_owner_roles={},
 		mod_roles={},
+		mod_log='false',
+		mod_log_chan='default---channel',
 		verify='false',
 		verify_role='Member',
 		verify_chan='default---channel',
+		voting='false',
+		voting_chan='default---channel',
 	},
-	['Ignore']=function(guild)
-		if not guild then return end
-		if guild['guild']then
-			guild=guild.guild
-		end
-		local e,ret=pcall(function()
-			local tab={}
-			for textChannel in guild.textChannels do
-				tab[textChannel.name]=false
-			end
-			return tab
-		end)
-		if not e then
-			print("[IGNORE DEFAULT] ERROR | "..tostring(ret).." | GUILD NAME: "..tostring(guild.name).." | GUILD ID: "..tostring(guild.id))
-			return{}
-		else
-			return ret
-		end
-	end,
-	['Cases']={['Case: 0']={Time=tostring(timeStamp()),Moderator='test#0000',ModeratorId='000000',Reason='Setting up the case database.',Case='Mute'}},
-	['Roles']={['default']={name='Default',id='00000000'}},
-	['Votes']={},
-	['Mutes']={},
+	Ignore={},
+	Cases={},
+	Roles={},
+	Votes={},
+	Timers={},
 }
 s_pred={
 	admin_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
+			if checkForCopies(settings.admin_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
 			table.insert(settings.admin_roles,r.id)
-			Database:Update('Settings',guild)
+			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -63,26 +58,84 @@ s_pred={
 	end,
 	audit_log=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update('Settings',guild,'audit_log',value)
+			settings.audit_log=value
+			Database:Update(guild)
 			return"Set audit_log to "..value
 		end
 	end,
 	audit_log_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
 			c=guild:getChannel(this)
 		else
-			c=guild:getChannel('name',name)
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
 		end
 		if c then
-			Database:Update('Settings',guild,'audit_log_chan',c.name)
+			settings.audit_log_chan=c.name
+			Database:Update(guild)
+			return"Successfully set audit log channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
+		end
+	end,
+	co_owner_roles=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
+		end
+		if r then
+			if checkForCopies(settings.co_owner_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
+			table.insert(settings.co_owner_roles,r.id)
+			Database:Update(guild)
+			return"Successfully added role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
+	mod_log=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			settings.mod_log=value
+			Database:Update(guild)
+			return"Set audit_log to "..value
+		end
+	end,
+	mod_log_chan=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
+		else
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
+		end
+		if c then
+			settings.mod_log_chan=c.name
+			Database:Update(guild)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -90,17 +143,22 @@ s_pred={
 	end,
 	mod_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
+			if checkForCopies(settings.mod_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
 			table.insert(settings.mod_roles,r.id)
-			Database:Update('Settings',guild)
+			Database:Update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -108,16 +166,19 @@ s_pred={
 	end,
 	verify_role=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
 			r=guild:getRole(this)
 		else
-			r=guild:getRole('name',name)
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
 		end
 		if r then
-			Database:Update('Settings',guild,'verify_role',r.name)
+			settings.verify_role=r.id
+			Database:Update(guild)
 			return"Successfully set verify role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..r.name..")"
@@ -125,16 +186,19 @@ s_pred={
 	end,
 	verify_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
 			c=guild:getChannel(this)
 		else
-			c=guild:getChannel('name',name)
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
 		end
 		if c then
-			Database:Update('Settings',guild,'verify_chan',c.name)
+			settings.verify_chan=c.name
+			Database:Update(guild)
 			return"Successfully set verify channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -142,12 +206,44 @@ s_pred={
 	end,
 	verify=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get('Settings',guild)
+		local settings=Database:Get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			Database:Update('Settings',guild,'verify',value)
+			settings.verify=value
+			Database:Update(guild)
 			return"Set verify to "..value
+		end
+	end,
+	voting=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			settings.voting=value
+			Database:Update(guild,nil,'voting',value)
+			return"Set audit_log to "..value
+		end
+	end,
+	voting_chan=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
+		else
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
+		end
+		if c then
+			settings.voting_chan=c.name
+			Database:Update(guild)
+			return"Successfully set audit log channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
 }
@@ -162,131 +258,96 @@ descriptions={
 	verify_chan='Channel where users can verify.',
 	verify_role='Role given to a member when verified using the verification system.',
 }
-for i,v in pairs(DBData.Databases)do
-	local data=firebase(v[1],v[2])
-	Database.Databases[i]=data
-	Database.Cache[i]={}
-	print(string.format("Made Database [%s]",tostring(i)))
-end
-function Database:Get(data_b,guild,ind)
-	local ts,fmt=tostring,string.format
-	local id
-	if type(guild)=='table'then
-		if guild['guild']then
-			id=ts(guild.guild.id)
+function Database:Get(guild,index)
+	local id,guild=resolveGuild(guild)
+	if Database.Cache[id]then
+		local Cached=Database.Cache[id]
+		if Cached[index]then
+			return Cached[index]
 		else
-			id=ts(guild.id)
+			return Cached
 		end
 	else
-		id=ts(guild)
-		guild=client:getGuild(id)
-	end
-	if Database.Cache[data_b]then
-		if Database.Cache[data_b][id]then
-			return Database.Cache[data_b][id]
+		local data,err=Database._conn.reql().db('electricity').table('guilds').get(tostring(id)).run()
+		if err then
+			print('GET',err)
 		else
-			local function callback(e,ret)
-				if e then
-					print(fmt("ERROR IN DATABASE:\n\tDATABASE: %s\n\tGUILD NAME: %s\n\tGUILD ID: %s\n\tREQUEST: %s",ts(data_b),ts(guild.name),ts(id),ts(ind)))
-				else
-					if ret=='null'or ret==nil then
-						if Database.Defaults[data_b]then
-							local t=Database.Defaults[data_b]
-							if type(t)=='function'then
-								t=t(guild)
-							end
-							Database.Cache[data_b][id]=t
-							return t
-						else
-							Database.Cache[data_b][id]={}
-							return{}
-						end
-					else
-						local data=type(ret)=='table'and ret or json.decode(ret)
-						local update=false
-						if Database.Defaults[data_b]then
-							local t=Data.Defaults[data_b]
-							if type(t)=='function'then
-								t=t(guild)
-							end
-							for index,value in pairs(t)do
-								if not data[index]then
-									data[index]=value
-									update=true
-								end
-							end
-						end
-						Database.Cache[data_b][id]=data
-						if update then
-							Database:Update(data_b,id)
-						end
-					end
-				end
-			end
-			local e,ret=Database.Databases[data_b]:get(id,callback)
-			callback(e,ret)
-		end
-	else
-		print(fmt("Database does not exist.\nDatabase: %s\nGuild: %s\nGuild id: %s",ts(data_b),ts(guild.name),ts(guild.id)))
-		if Database.Defaults[data_b]then
-			return Database.Defaults[data_b]
-		else
-			return{}
-		end
-	end
-end
-function Database:Update(data_b,guild,ind,val)
-	local ts,fmt=tostring,string.format
-	local id
-	if type(guild)=='table'then
-		if guild['guild']then
-			id=ts(guild.guild.id)
-		else
-			id=ts(guild.id)
-		end
-	else
-		id=ts(guild)
-		guild=client:getGuild(id)
-	end
-	local Db=Database.Databases[data_b]
-	local cache=Database.Cache[data_b]
-	local function cb(e,ret)
-		if e then
-			print(("ERROR IN DATABASE:\n\tDATABASE: %s\n\tGUILD NAME: %s\n\tGUILD ID: %s\n\tREQUEST: %s"):format(ts(data_b),ts(guild.name),ts(id),'Update'))
-		end
-	end
-	if Db then
-		if id then
-			if cache[id]then
-				if ind then
-					Database.Cache[data_b][id][ind]=val
-				end
-				local e,ret=Db:set(id,json.encode(Database.Cache[data_b][id]),cb)
-				if e then
-					cb(e,ret)
-				end
+			local data=data[1]
+			local u
+			if data=='null'then
+				data=Database.Default
+				Database.Cache[id]=data
+				u=true
 			else
-				local Default=Database.Defaults[data_b]
-				if type(Default)=='function'then Default=Default(guild)end
-				if Default then
-					local e,ret=Db:set(id,json.encode(Default),cb)
-					if e then
-						cb(e,ret)
+				Database.Cache[id]=data
+				for i,v in pairs(Database.Default)do
+					if not data[i]then
+						data[i]=v
+						u=true
+					end
+				end
+				for i,v in pairs(Database.Default.Settings)do
+					if not data.Settings[i]then
+						data.Settings[i]=v
+						u=true
 					end
 				end
 			end
+			if u then
+				Database:Update(guild)
+			end
+			return data
+		end
+	end
+end
+function Database:Update(guild,query,index,value)
+	if not guild then error"No ID/Guild/Message provided"end
+	local id,guild=resolveGuild(guild)
+	if Database.Cache[id]then
+		if index then
+			Database.Cache[id][index]=value
+		end
+		p(Database.Cache[id])
+		local exists=conn.reql().db('electricity').table('guilds').get(id)
+		if exists then
+			local data,err,edata=conn.reql().db('electricity').table('guilds').update(Database.Cache[id]).run()
+			if err then
+				print('UPDATE')
+				print(err)
+				p(edata)
+			end
 		else
-			if not Database.Cache[data_b]then return end
-			local data={}
-			for i,v in pairs(Database.Cache[data_b])do
-				print(i)
-				local e,ret=Db:set(i,json.encode(v),cb)
-				if e then
-					cb(e,ret)
-				end
+			local data,err,edata=conn.reql().db('electricity').table('guilds').insert(Database.Cache[id]).run()
+			if err then
+				print('UPDATE')
+				print(err)
+				p(edata)
 			end
 		end
 	else
-		print(fmt("Database does not exist.\nDatabase: %s\nGuild: %s\nGuild id: %s",ts(data_b),ts(guild.name),ts(guild.id)))
+		print"Fetch data before trying to update it. You fool."
+	end
+end
+function Database:Delete(guild,query,index)
+	if not guild then error"No ID/Guild/Message provided"end
+	local id,guild=resolveGuild(guild)
+	if Database.Cache[id]then
+		local Cached=Database.Cache[id]
+		if Cached[index]then
+			Cached[index]=nil
+		end
+	end
+	local data,err=conn.reql().db('electricity').table('guilds').get(id).getField(index).delete().run()
+	if err then
+		print('DELETE',err)
+		return err
+	else
+		return data
+	end
+end
+function Database:GetCached(guild)
+	local id,guild=resolveGuild(guild)
+	if Database.Cache[id]then
+		return Database.Cache[id]
 	end
 end

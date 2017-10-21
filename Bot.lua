@@ -18,7 +18,7 @@ function FFB(t)--format for beta
 end
 function loadModule(name)
 	name=name..'.lua'
-	local data,others=fs.readFileSync('Modules/'..name)
+	local data,others=fs.readFileSync('./Modules/'..name)
 	if data then
 		local a,b=loadstring(data,name)
 		if not a then
@@ -48,13 +48,18 @@ function loadModule(name)
 		return false
 	end
 end
-loadModule('Utilities')
-loadModule('Functions')
-loadModule('Database_new')
-loadModule('Commands')
-loadModule('Events')
-loadModule('API')
-client:on('messageCreate',Events.messageCreate)
-client:on('messageUpdate',Events.messageUpdate)
-client:on('ready',Events.ready)
-client:run('Bot '..token)
+coroutine.wrap(function()
+	loadModule('Utilities')
+	loadModule('Functions')
+	loadModule('Database')
+	loadModule('Commands')
+	loadModule('Events')
+	loadModule('Timed')
+	loadModule('API')
+	client:on('messageCreate',Events.messageCreate)
+	client:on('messageUpdate',Events.messageUpdate)
+	client:on('guildCreate',Events.guildCreate)
+	client:on('guildDelete',Events.guildDelete)
+	client:once('ready',Events.ready)
+	client:run('Bot '..token)
+end)()

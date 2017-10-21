@@ -2,7 +2,8 @@
 --[[
 	POSSIBLE:
 		Timed mute.
-
+		Emergency staff command shut off.
+		
 ]]
 local verification_codes={}
 Commands={}
@@ -78,8 +79,12 @@ addCommand('User Info','Fetches info about a user','uinfo',0,false,true,false,fu
 end)
 addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false,false,false,function(message,args)
 	local time=uptime:getTime():toTable()
-	sendMessage(message,embed(nil,string.format("Day%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
-		time.days==1 and's'or'',time.days,time.hours==1 and's'or'',time.hours,time.minutes==1 and's'or'',time.minutes,time.seconds==1 and's'or'',time.seconds
+	sendMessage(message,embed(nil,string.format("Week %s: %s\nDay%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
+		time.weeks==1 and's'or'',time.weeks,
+		time.days==1 and's'or'',time.days,
+		time.hours==1 and's'or'',time.hours,
+		time.minutes==1 and's'or'',time.minutes,
+		time.seconds==1 and's'or'',time.seconds
 	),colors.blue),true)
 end)
 addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false,false,function(message,args)
@@ -180,6 +185,19 @@ addCommand('Guild info','Fetches info about the guild','ginfo',0,false,true,fals
 		{name="This guild was created at:",value=convertJoinedAtToTime(guild.timestamp)},
 	}),true)
 end)
+addCommand('Base64','Encodes your message with base64','b64',0,false,false,false,function(message,args,switches)
+	sendMessage(message,embed("Base64",ssl.base64(args[1]),colors.blue),true)
+end)
+addCommand('Destroy','Destroys your message.|/ct Custom text','destroy',0,false,false,true,function(message,args,switches)
+	local tx,ct=args[1],''
+	if switches['ct']then
+		tx=tx:sub(0,tx:find('/ct')-1)
+		ct=switches['ct']
+	else
+		ct=' has been destroyed'
+	end
+	sendMessage(message,embed(nil,tostring(tx)..ct,colors.blue),true)
+end)
 addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(message,args)
 	local guild=message.guild
 	local settings=Database:Get(message).Settings
@@ -278,11 +296,11 @@ addCommand('Kill','Kills a person with a super zapper!',{'kill','die','youaredea
 		end
 	end)()
 end)
-addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
+addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute /t Time',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()
 		local guild=message.guild
 		local bm=guild.me
-		local global,voice,un
+		local global,voice,un,secs
 		if not getPermissions(bm,'manageChannels')then return sendMessage(message,"Lack of permissions, manageChannels required.")end
 		if switches['u']then
 			un=true
@@ -292,6 +310,9 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 		end
 		if switches['v']then
 			voice=true
+		end
+		if switches['t']and not switches['u']then
+			secs=toSeconds(parseTime(switches['t']))
 		end
 		local u,bpos=message.mentionedUsers:iter()(),getHighestRole(bm)
 		if u then
@@ -308,7 +329,7 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 					else
 						if un then
 							if global then
-								for channel in guild.channels:iter() do
+								for channel in guild.textChannels:iter() do
 									unmute(member,channel)
 								end
 							else
@@ -317,13 +338,16 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 							sendMessage(message,(global and"Globally unmuted "or"Unmuted ")..member.mentionString)
 						else
 							if global then
-								for channel in guild.channels:iter() do
+								for channel in guild.textChannels:iter() do
 									mute(member,channel)
 								end
 							else
 								mute(member,message.channel)
 							end
-							sendMessage(message,(global and"Globally muted "or"Muted ")..member.mentionString)
+							if secs then
+								Timing:newTimer(guild,secs,string.format('UNMUTE||%s||%s||%s',guild.id,(global and'all'or message.channel.id),member.id))
+							end
+							sendMessage(message,(global and"Globally muted "or"Muted ")..member.mentionString..(secs and' | For '..switches['t']or''))
 						end
 					end
 				else
@@ -337,7 +361,7 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 		end
 	end)()--possibly pausing the main thread is bad
 end)
-addCommand('Kick','Kicks a member.|/d Days',{'kick','deport'},1,false,true,true,function(message,args,switches)
+addCommand('Kick','Kicks a member.|/r Reason',{'kick','deport'},1,false,true,true,function(message,args,switches)
 	local reason
 	local bm,voice=getBotMember(message.guild),false
 	local settings=Database:Get(message).Settings
@@ -391,14 +415,29 @@ addCommand('Voice Kick','Kicks a member from voice.',{'vkick','vdeport'},1,false
 		sendMessage(message,"Cannot v-kick member! Nobody mentioned!")
 	end
 end)
-addCommand('Ban','Bans a member.|/u Unban /l Ban list',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
+addCommand('Ban','Bans a member.|/r Reason /u Unban /l Ban list',{'ban','banish','youshallnotpass'},2,false,true,true,function(message,args,switches)
 	local reason,days
 	local guild=message.guild
+	local enf=reasonEnforced(guild)
 	local bm,n=getBotMember(guild)
 	if not getPermissions(bm,'banMembers')then return sendMessage(message,"Lack of permissions, banMembers required.")end
 	if switches['u']then
-		for user in guild.bannedUsers:iter()do
+		for user in guild:getBans():iter()do
 			if user.id==switches['u']then
+				if enf and switches['r']then
+					local mem=message.member
+					sendModLog(guild,{
+						{name='Staff',value=mem.name..'#'..mem.discriminator,inline=true},
+						{name='Staff ID',value=mem.id,inline=true},
+						{name='Staff Rank',value=tostring(getRank(mem,true)),inline=true},
+						{name='Against',value=user.name..'#'..user.discriminator,inline=true},
+						{name='Against ID',value=user.id,inline=true},
+						{name='Action',value='Unban',inline=true},
+						{name='Reason',value=switches['r']},
+					})
+				elseif enf and switches['r']==nil then
+					return sendMessage(message,embed(nil,"Reason not provided!",colors.red),true)
+				end
 				local this=guild:unbanUser(user)
 				if not this then
 					return sendMessage(message,"Cannot unban member! Unknown error!")
@@ -430,18 +469,28 @@ addCommand('Ban','Bans a member.|/u Unban /l Ban list',{'ban','banish','youshall
 	if switches['d'] and tonumber(switches['d'])then
 		days=tonumber(switches['d'])
 	end
-	local u,bpos=message.mentionedUsers:iter()(),getHighestRole(bm)
-	if u then
-		local member=guild:getMember(u)
+	local user,bpos=message.mentionedUsers:iter()(),getHighestRole(bm)
+	if user then
+		local member=guild:getMember(user)
 		if getRank(member)<getRank(message.member)then
 			if bpos>getHighestRole(member)then
-				if settings.required_reason and not switches.r then
-					sendMessage(message,"Cannot ban member! Reason required!")
-				else
-					local this=member:ban(reason,days)
-					if not this then
-						sendMessage(message,"Cannot ban member! Unknown error!")
-					end
+				if enf and switches['r']then
+					local mem=message.member
+					sendModLog(guild,{
+						{name='Staff',value=mem.name..'#'..mem.discriminator,inline=true},
+						{name='Staff ID',value=mem.id,inline=true},
+						{name='Staff Rank',value=tostring(getRank(mem,true)),inline=true},
+						{name='Against',value=user.name..'#'..user.discriminator,inline=true},
+						{name='Against ID',value=user.id,inline=true},
+						{name='Action',value='Unban',inline=true},
+						{name='Reason',value=reason},
+					})
+				elseif enf and switches['r']==nil then
+					return sendMessage(message,embed(nil,"Reason not provided!",colors.red),true)
+				end
+				local this=member:ban(reason,days)
+				if not this then
+					sendMessage(message,"Cannot ban member! Unknown error!")
 				end
 			else
 				sendMessage(message,"Cannot ban member! Rank exceeds my own!")
@@ -491,7 +540,13 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 		local this=''
 		for i,v in orderedPairs(settings)do
 			local o=guild:getRole(v)or guild:getChannel(v)
-			if o then v=o.name end
+			if o then
+				if not o.channelType then
+					v=o.name
+				else
+					v=o.mentionString
+				end
+			end
 			this=this..'**'..i..'** | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
 		end
 		sendMessage(message,embed("Settings list",this),true)
@@ -619,6 +674,14 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 		orig(txt)
 		tx=tx..'\n'..txt
 	end
+	local function fp(...)
+		local n = select('#', ...)
+		local arguments = {...}
+		for i = 1, n do
+			arguments[i] = pprint.dump(arguments[i],nil,true):gsub(token,'<Hidden for security>')
+		end
+		tx=tx..table.concat(arguments, "\t").."\n"
+	end
 	local toload=args[1]:gsub('```lua',''):gsub('```','')
 	local a,b=loadstring(toload,'Electricity 2.0')
 	if not a then
@@ -626,6 +689,7 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 	end
 	local env=setmetatable({
 		print=fprint,
+		p=fp,
 		oprint=orig,
 		message=message,
 		guild=message.guild,

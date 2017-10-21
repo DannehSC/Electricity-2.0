@@ -5,7 +5,11 @@ API={
 		['Meow']='http://random.cat/meow',
 		['Bork']='https://dog.ceo/api/breeds/image/random',
 		['Urban']='https://api.urbandictionary.com/v0/define?term=%s',
+		['Carbon']='https://www.carbonitex.net/discord/data/botdata.php',
 	},
+	Carbon={},
+	DBots={},
+	Misc={},
 }
 pcall(function()
 	API.Data=require('./apidata.lua')
@@ -34,11 +38,15 @@ function API:Get(End,Fmt)
 	end
 	return http.request('GET',point)
 end
-API.DBots={}
 function API.DBots:Stats_Update(info)
 	return API:Post('DBots_Stats',{client.user.id},{{"Content-Type","application/json"},{"Authorization",API.Data.DBots_Auth}},json.encode(info))
 end
-API.Misc={}
+function API.Carbon:Stats_Update(info)
+	local key=Data.Carbon_Key
+	if not key then return end
+	info.key=key
+	return API:Post('Carbon',nil,{{"Content-Type","application/json"}},json.encode(info))
+end
 function API.Misc:Cats()
 	local requestdata,request=API:Get('Meow')
 	if not json.decode(request)then

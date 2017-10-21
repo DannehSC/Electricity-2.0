@@ -2,10 +2,12 @@
 operatingsystem=require('ffi').os
 color=discordia.Color.fromRGB
 mutex=discordia.Mutex()
+pprint=require("pretty-print")
 query=require("querystring")
 enclib=require("encrypter")
 http=require("coro-http")
 timer=require("timer")
+ssl=require('openssl')
 json=require("json")
 uv=require("uv")
 colors={
@@ -115,12 +117,20 @@ function set(a,b,c)
 		b[c]=a
 	end
 end
-function embed(title,desc,color,fields)
+function getTimestamp()
+	return discordia.Date():toISO('T','Z')
+end
+function embed(title,desc,color,fields,other)
 	local emb={}
 	set(title,emb,'title')
 	set(desc,emb,'description')
 	set(color,emb,'color')
 	set(fields,emb,'fields')
+	if other then
+		for i,v in pairs(other)do
+			set(v,emb,i)
+		end
+	end
 	return emb
 end
 function sendMessage(obj,con,emb)
@@ -302,11 +312,11 @@ function getIdFromString(str)
 end
 function mute(member,channel)
 	local overwrite=channel:getPermissionOverwriteFor(member)
-	overwrite:denyPermissions('sendMessages')
+	return overwrite:denyPermissions('sendMessages')
 end
 function unmute(member,channel)
 	local overwrite=channel:getPermissionOverwriteFor(member)
-	overwrite:clearPermissions('sendMessages')
+	return overwrite:clearPermissions('sendMessages')
 end
 function voiceKick(member)
 	local guild,voice=member.guild,member.voiceChannel
@@ -355,7 +365,10 @@ function commandDocsDump()
 			asdf[i]=asdf[i]..makeDoc(vv)..'\n'
 		end
 	end
-	print(('%s\n%s\n%s\n%s\n%s'):format(asdf[1],asdf[2],asdf[3],asdf[4],asdf[5]))
+	local a=io.open('docs.txt','w')
+	local b=a:write(('%s\n%s\n%s\n%s\n%s'):format(asdf[1],asdf[2],asdf[3],asdf[4],asdf[5]))
+	local c=b:flush()
+	local d=c:close()
 end
 function split(msg,bet)
 	local f=msg:find(bet)
@@ -452,5 +465,100 @@ function checkForCopies(tab,value)
 		if v==value then
 			return true
 		end
+	end
+end
+function parseTime(message)
+	local t={}
+	for i,v in pairs(string.split(message,' '))do
+		for de,str in v:gmatch('(%d?%d?%d?%d?%d)(%S?%S?%S?%S)')do
+			local s=str:lower()
+			if s=='y'or s:sub(1,4)=='year'then
+				t.years=de
+			elseif s=='mo'or s:sub(1,5)=='month'then
+				t.months=de
+			elseif s=='w'or s:sub(1,4)=='week'then
+				t.weeks=de
+			elseif s=='d'or s:sub(1,3)=='day'then
+				t.days=de
+			elseif s=='h'or s:sub(1,4)=='hour'then
+				t.hours=de
+			elseif s=='m'or s=='mi'or s:sub(1,6)=='minute'then
+				t.minutes=de
+			elseif s=='s'or s:sub(1,6)=='second'then
+				t.seconds=de
+			end
+		end
+	end
+	return t
+end
+function toSeconds(tim)
+	if not type(tim)=='table'then return 0 end
+	local s=0
+	local secs={
+		years=31536000,
+		months=60*60*24*31,
+		weeks=60*60*24*7,
+		days=60*60*24,
+		hours=60*60,
+		minutes=60,
+		seconds=1,
+	}
+	for typ,val in pairs(tim)do	
+		s=s+(secs[typ]*val)
+	end
+	return s
+end
+function resolveGuild(guild)
+	local ts=tostring
+	if not guild then error"No ID/Guild/Message provided"end
+	local id
+	if type(guild)=='table'then
+		if guild['guild']then
+			id=ts(guild.guild.id)
+		else
+			id=ts(guild.id)
+		end
+	else
+		id=ts(guild)
+		guild=client:getGuild(id)
+	end
+	return id,guild
+end
+function resolveChannel(guild,name)
+	local this=getIdFromString(name)
+	if this then
+		c=guild:getChannel(this)
+	else
+		c=guild.textChannels:find(function(c)
+			return c.name==name
+		end)
+	end
+	return c
+end
+function sendAudit(guild,content,embed)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.audit_log)==true then
+		local chan=resolveChannel(guild,settings.audit_log_chan)
+		if chan then
+			sendMessage(chan,content,embed)
+		end
+	end
+end
+function sendModLog(guild,fields)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.mod_log)==true then
+		local chan=resolveChannel(guild,settings.mod_log_chan)
+		if chan then
+			sendMessage(chan,embed('ModLog',nil,colors.blue,fields),true)
+		end
+	end
+end
+function reasonEnforced(guild)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.mod_log)==true then
+		return true
 	end
 end
