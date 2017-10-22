@@ -127,9 +127,12 @@ function Events.guildCreate(guild)
 	for g in client.guilds:iter()do
 		local chan=g.textChannels:get('370801361220141057')
 		if chan then
-			sendMessage(chan,embed('New guild!',fmt('Guild name: %s\nGuild ID: %s\nGuild member count: %s\n\nOwner name: %s\nOwner ID: %s',
-				guild.name,guild.id,tostring(guild.totalMemberCount),tostring(guild.owner.name..'#'..guild.owner.discriminator),guild.owner.id
-			),colors.blue),true)
+			local tx=fmt('Guild name: %s\nGuild ID: %s\nGuild member count: %s',guild.name,guild.id,tostring(guild.totalMemberCount))
+			local owner=guild:getMember(guild.ownerId)
+			if owner then
+				tx=tx..fmt('\n\nOwner name: %s\nOwner ID: %s',owner.name,owner.id)
+			end
+			sendMessage(chan,embed('New guild!',tx,colors.blue),true)
 		end
 	end
 end
@@ -137,9 +140,12 @@ function Events.guildDelete(guild)
 	for g in client.guilds:iter()do
 		local chan=g.textChannels:get('370801361220141057')
 		if chan then
-			sendMessage(chan,embed('Left guild! :(',fmt('Guild name: %s\nGuild ID: %s\n\nOwner name: %s\nOwner ID: %s',
-				guild.name,guild.id,tostring(guild.owner.name..'#'..guild.owner.discriminator),guild.owner.id
-			),colors.blue),true)
+			local tx=fmt('Guild name: %s\nGuild ID: %s',guild.name,guild.id)
+			local owner=guild:getMember(guild.ownerId)
+			if owner then
+				tx=tx..fmt('\n\nOwner name: %s\nOwner ID: %s',owner.name,owner.id)
+			end
+			sendMessage(chan,embed('Left guild! :(',tx,colors.blue),true)
 		end
 	end
 end
