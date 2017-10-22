@@ -191,7 +191,8 @@ function getRank(member,server)
 				end
 			end
 		end
-		if member.id==member.guild.owner.id then
+		local owner=guild:getMember(guild.ownerId)
+		if member.id==owner.id then
 			rank=3
 		end
 	end
@@ -240,7 +241,7 @@ function getBotMember(guild)
 end
 function getHighestRole(member)
 	local h=0
-	if member.guild.owner.id==member.id then h=99999 end
+	if member.guild.ownerId==member.id then h=99999 end
 	if member.id==client.owner.id then h=99999999999 end
 	for role in member.roles:iter()do
 		if role.position>h then
