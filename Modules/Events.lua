@@ -11,7 +11,7 @@ function Events.messageCreate(message)
 	local bet=Database.Default.Settings.bet--default
 	local content,command,isServer,private=message.content,'',false,false
 	if message.author.bot==true then return end
-	if message.channel.type==enums.channelType.private then
+	if not message.guild then
 		private=true
 	else
 		settings=Database:Get(message).Settings
@@ -124,6 +124,8 @@ function Events.messageUpdate(message)
 	end
 end
 function Events.guildCreate(guild)
+	print'fired'
+	print(guild.id)
 	for g in client.guilds:iter()do
 		local chan=g.textChannels:get('370801361220141057')
 		if chan then
@@ -131,6 +133,17 @@ function Events.guildCreate(guild)
 			local owner=guild:getMember(guild.ownerId)
 			if owner then
 				tx=tx..fmt('\n\nOwner name: %s\nOwner ID: %s',owner.name,owner.id)
+				local thetx=''
+				local bet=Database:Get(guild).Settings.bet
+				function append(ntx,fin)
+					fin=fin or false
+					thetx=thetx..ntx..(fin==false and'\n\n'or'')
+				end
+				append('Thank you for using Electricity! Here are some example commands.')
+				append('For example, to set your prefix to `!` you would do `%ssettings /s bet /v !`')
+				append('Or to see the commands, you would do `%scmds`')
+				append('To see a list of settings, say `%ssettings /l`',true)
+				sendMessage(owner,embed(nil,fmt(thetx,bet,bet,bet),colors.blue),true)
 			end
 			sendMessage(chan,embed('New guild!',tx,colors.blue),true)
 		end
@@ -186,7 +199,7 @@ function Events.ready()
 	Timing:on(Events.Timing)
 	client:setGame('Mention me for help!')
 	for guild in client.guilds:iter()do
-		Database:Get(guild)
+		coroutine.wrap(Database.Get)(Database,guild)
 		Timing:load(guild)
 		local chan=guild.textChannels:get('370801361220141057')
 		if chan then

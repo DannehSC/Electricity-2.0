@@ -79,12 +79,12 @@ addCommand('User Info','Fetches info about a user','uinfo',0,false,true,false,fu
 end)
 addCommand('Uptime','Returns the time the bot has been loaded.','uptime',0,false,false,false,function(message,args)
 	local time=uptime:getTime():toTable()
-	sendMessage(message,embed(nil,string.format("Week %s: %s\nDay%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
-		time.weeks==1 and's'or'',time.weeks,
-		time.days==1 and's'or'',time.days,
-		time.hours==1 and's'or'',time.hours,
-		time.minutes==1 and's'or'',time.minutes,
-		time.seconds==1 and's'or'',time.seconds
+	sendMessage(message,embed(nil,string.format("Week%s: %s\nDay%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
+		time.weeks~=1 and's'or'',time.weeks,
+		time.days~=1 and's'or'',time.days,
+		time.hours~=1 and's'or'',time.hours,
+		time.minutes~=1 and's'or'',time.minutes,
+		time.seconds~=1 and's'or'',time.seconds
 	),colors.blue),true)
 end)
 addCommand('Bot invite','Sends you the bot invite links.','botinv',0,false,false,false,function(message,args)

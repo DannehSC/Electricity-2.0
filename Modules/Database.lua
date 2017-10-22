@@ -3,6 +3,13 @@ local data=require('./database.lua')
 local rethink=require('luvit-reql')
 local conn=rethink.connect(data)
 local ts,fmt=tostring,string.format
+local function getTableCount(t)
+	local x=0
+	for i,v in pairs(t)do
+		x=x+1
+	end
+	return x
+end
 Database={
 	_raw_database=rethink,
 	_conn=conn,
@@ -272,9 +279,8 @@ function Database:Get(guild,index)
 		if err then
 			print('GET',err)
 		else
-			local data=data[1]
 			local u
-			if data=='null'then
+			if getTableCount(data)<1 then
 				data=Database.Default
 				Database.Cache[id]=data
 				u=true
