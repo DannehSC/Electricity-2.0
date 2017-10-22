@@ -164,6 +164,7 @@ function sendTempMessage(tab,seconds)
 end
 function getRank(member,server)
 	if not member then client:warning('No member object. getRank()')return 0 end
+	local guild=member.guild
 	local rank=0
 	if server then
 		local settings=Database:Get(member.guild).Settings
@@ -191,7 +192,7 @@ function getRank(member,server)
 				end
 			end
 		end
-		local owner=member.guild:getMember(guild.ownerId)
+		local owner=member.guild:getMember(member.guild.ownerId)
 		if member.id==owner.id then
 			rank=3
 		end
