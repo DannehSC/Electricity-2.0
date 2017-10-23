@@ -124,8 +124,6 @@ function Events.messageUpdate(message)
 	end
 end
 function Events.guildCreate(guild)
-	print'fired'
-	print(guild.id)
 	for g in client.guilds:iter()do
 		local chan=g.textChannels:get('370801361220141057')
 		if chan then
@@ -199,7 +197,7 @@ function Events.ready()
 	Timing:on(Events.Timing)
 	client:setGame('Mention me for help!')
 	for guild in client.guilds:iter()do
-		coroutine.wrap(Database.Get)(Database,guild)
+		Database:Get(guild)
 		Timing:load(guild)
 		local chan=guild.textChannels:get('370801361220141057')
 		if chan then

@@ -280,12 +280,16 @@ function Database:Get(guild,index)
 			print('GET',err)
 		else
 			local u
-			if getTableCount(data)<1 then
+			if data==nil or data==json.null or data[1]==nil then
+				p'null'
 				data=Database.Default
 				Database.Cache[id]=data
+				Database.Cache[id]['id']=id
 				u=true
 			else
+				local data=data[1]
 				Database.Cache[id]=data
+				Database.Cache[id]['id']=id
 				for i,v in pairs(Database.Default)do
 					if not data[i]then
 						data[i]=v
@@ -300,7 +304,7 @@ function Database:Get(guild,index)
 				end
 			end
 			if u then
-				Database:Update(guild)
+				Database:Update(id)
 			end
 			return data
 		end
@@ -313,22 +317,11 @@ function Database:Update(guild,query,index,value)
 		if index then
 			Database.Cache[id][index]=value
 		end
-		p(Database.Cache[id])
-		local exists=conn.reql().db('electricity').table('guilds').get(id)
-		if exists then
-			local data,err,edata=conn.reql().db('electricity').table('guilds').update(Database.Cache[id]).run()
-			if err then
-				print('UPDATE')
-				print(err)
-				p(edata)
-			end
-		else
-			local data,err,edata=conn.reql().db('electricity').table('guilds').insert(Database.Cache[id]).run()
-			if err then
-				print('UPDATE')
-				print(err)
-				p(edata)
-			end
+		local data,err,edata=conn.reql().db('electricity').table('guilds').inOrUp(Database.Cache[id]).run()
+		if err then
+			print('UPDATE')
+			print(err)
+			p(edata)
 		end
 	else
 		print"Fetch data before trying to update it. You fool."
