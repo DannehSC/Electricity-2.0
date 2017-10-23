@@ -41,10 +41,13 @@ end
 function API.DBots:Stats_Update(info)
 	return API:Post('DBots_Stats',{client.user.id},{{"Content-Type","application/json"},{"Authorization",API.Data.DBots_Auth}},json.encode(info))
 end
-function API.Carbon:Stats_Update(info)
+function API.Carbon:Stats_Update()
 	local key=API.Data.Carbon_Key
 	if not key then return end
-	info.key=key
+	info={
+		key=key,
+		servercount=#client.guilds
+	}
 	return API:Post('Carbon',nil,{{"Content-Type","application/json"}},json.encode(info))
 end
 function API.Misc:Cats()
