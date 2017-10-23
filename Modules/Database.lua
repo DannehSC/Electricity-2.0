@@ -281,7 +281,6 @@ function Database:Get(guild,index)
 		else
 			local u
 			if data==nil or data==json.null or data[1]==nil then
-				p'null'
 				data=Database.Default
 				Database.Cache[id]=data
 				Database.Cache[id]['id']=id
