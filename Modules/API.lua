@@ -6,6 +6,7 @@ API={
 		['Bork']='https://dog.ceo/api/breeds/image/random',
 		['Urban']='https://api.urbandictionary.com/v0/define?term=%s',
 		['Carbon']='https://www.carbonitex.net/discord/data/botdata.php',
+		['dadjoke']='https://icanhazdadjoke.com/',
 	},
 	Carbon={},
 	DBots={},
@@ -26,7 +27,7 @@ function API:Post(End,Fmt,...)
 	end
 	return http.request('POST',point,...)
 end
-function API:Get(End,Fmt)
+function API:Get(End,Fmt,...)
 	local point
 	local p=API.Endpoints[End]
 	if p then
@@ -36,7 +37,7 @@ function API:Get(End,Fmt)
 			point=p
 		end
 	end
-	return http.request('GET',point)
+	return http.request('GET',point,...)
 end
 function API.DBots:Stats_Update(info)
 	return API:Post('DBots_Stats',{client.user.id},{{"Content-Type","application/json"},{"Authorization",API.Data.DBots_Auth}},json.encode(info))
@@ -63,6 +64,10 @@ function API.Misc:Dogs()
 		return nil,'ERROR: Unable to decode JSON [API.Misc:Dogs]'
 	end
 	return json.decode(request).message
+end
+function API.Misc:Joke()
+	local request,data=API:Get('dadjoke',nil,{{'User-Agent','luvit'},{'Accept','text/plain'}})
+	return data
 end
 function API.Misc:Urban(input,d)
 	if d then

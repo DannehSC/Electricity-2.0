@@ -59,9 +59,7 @@ addCommand('Bot Info','Fetches info about the bot!','binfo',0,false,false,false,
 end)
 addCommand('User Info','Fetches info about a user','uinfo',0,false,true,false,function(message,args)
 	local u=message.mentionedUsers:iter()()
-	if u then
-		--idk
-	else
+	if not u then
 		u=message.author
 	end
 	local m=message.guild:getMember(u)
@@ -96,9 +94,21 @@ addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,fal
 	local file,err=API.Misc:Cats()
 	sendMessage(message,file or err)
 end)
+addCommand('Coin flip!','Flips a coin!',{'cflip','coinflip','flippy'},0,false,false,false,function(args,message)
+	local f=math.random(1,2)
+	sendMessage(message,embed(nil,(f==1 and"Tails"or"Heads"),colors.yellow),true)
+end)
+addCommand('Roll the dice','Dice!',{'rtdice','dice','roll'},0,false,false,false,function(args,message)
+	local f=math.random(1,6)
+	sendMessage(message,embed(nil,"You rolled a "..tostring(f),colors.yellow),true)
+end)
 addCommand('Dog picture','Gets a dog picture',{'dog','bork','dpic'},0,false,false,false,function(message,args)
 	local file,err=API.Misc:Dogs()
 	sendMessage(message,file or err)
+end)
+addCommand('Joke','Gets a joke',{'joke','joker','batmansparents','dadjoke'},0,false,false,false,function(message,args)
+	local joke=API.Misc:Joke()
+	sendMessage(message,joke)
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
 	sendMessage(message,embed("Commands","The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>",colors.yellow),true)
@@ -295,6 +305,20 @@ addCommand('Kill','Kills a person with a super zapper!',{'kill','die','youaredea
 			sendMessage(message,embed(nil,"Cannot kill member! Nobody mentioned!",colors.red),true)
 		end
 	end)()
+end)
+addCommand('Remind','Remind you of <message>|/t Time (REQUIRED)',{'remind','tellmelater','remindmelater'},0,false,true,true,function(message,args,switches)
+	if not switches['t']then
+		return sendMessage(message,"Time switch (/t) not provided.")
+	end
+	local time=switches['t']
+	local secs=toSeconds(parseTime(switches['t']))
+	local guild=message.guild
+	local member=message.member
+	local tx=args[1]:gsub('||',('|'..string.char(226,128,139)..'|'))
+	local found=args[1]:find('/t')
+	tx=tx:sub(1,found-2)
+	Timing:newTimer(guild,secs,string.format('REMINDER||%s||%s||%s||%s||%s',guild.id,message.channel.id,member.id,time,tx))
+	sendMessage(message,embed('Reminder','Set new reminder for '..time..' from now.',colors.blue),true)
 end)
 addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute /t Time',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()

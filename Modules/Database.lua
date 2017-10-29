@@ -281,9 +281,9 @@ function Database:Get(guild,index)
 		else
 			local u
 			if data==nil or data==json.null or data[1]==nil then
-				data=Database.Default
+				data=table.deepcopy(Database.Default)
+				data.id=id
 				Database.Cache[id]=data
-				Database.Cache[id]['id']=id
 				u=true
 			else
 				local data=data[1]
@@ -316,6 +316,9 @@ function Database:Update(guild,query,index,value)
 		if index then
 			Database.Cache[id][index]=value
 		end
+		if not Database.Cache[id].id then
+			Database.Cache[id].id=id
+		end
 		local data,err,edata=conn.reql().db('electricity').table('guilds').inOrUp(Database.Cache[id]).run()
 		if err then
 			print('UPDATE')
@@ -335,7 +338,7 @@ function Database:Delete(guild,query,index)
 			Cached[index]=nil
 		end
 	end
-	local data,err=conn.reql().db('electricity').table('guilds').get(id).getField(index).delete().run()
+	local data,err=conn.reql().db('electricity').table('guilds').get(id).getField(query).filter({id=index}).delete().run()
 	if err then
 		print('DELETE',err)
 		return err

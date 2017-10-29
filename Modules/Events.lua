@@ -77,7 +77,7 @@ function Events.messageCreate(message)
 						local a,b=pcall(tab.Function,message,args,switches)
 						if not a then
 							sendMessage(message,'Command error:\n'..b)
-							sendLog(hooks[FFB('Errors')],"**COMMAND ERROR**",fmt("Error message: %s\n\nGuild id: %s\n\nChannel id: %s\n\nUser id: %s",b,isServer and message.guild.id or"PRIVATE CHANNEL",message.channel.id,message.author.id))
+							sendLog(hooks[FFB('Errors')],"**COMMAND ERROR**",fmt("Error message: %s\n\nCommand: %s\n\nGuild id: %s\n\nChannel id: %s\n\nUser id: %s",b,tab.Name,(isServer and message.guild.id or"PRIVATE CHANNEL"),message.channel.id,message.author.id))
 						end
 						local g=message.guild
 						if g then
@@ -171,8 +171,6 @@ function Events.Timing(data)--todo: bypass time mutes with global mute
 					if u then
 						local m=g:getMember(u.id)
 						unmute(m,c)
-					else
-						print"wot[4]"
 					end
 				end
 			else
@@ -181,15 +179,24 @@ function Events.Timing(data)--todo: bypass time mutes with global mute
 					local u=client:getUser(args[4])
 					if u then
 						local m=g:getMember(u.id)
-					else
-						print"wot[3]"
 					end
-				else
-					print"wot[2]"
 				end
 			end
-		else
-			print"wot"
+		end
+	elseif args[1]=='REMINDER'then
+		local g=client:getGuild(args[2])
+		if g then
+			local c=g:getChannel(args[3])
+			local m=g:getMember(args[4])
+			if not m then return end
+			local time=args[5]
+			local obj=c or m
+			if obj then
+				sendMessage(obj,{
+					content=m.mentionString,
+					embed=embed('Reminder',('You asked to be reminded of \''..args[6]..'\' '..time..' ago.'),colors.blue)
+				})
+			end
 		end
 	end
 end

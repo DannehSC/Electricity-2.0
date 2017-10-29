@@ -31,7 +31,7 @@ function Timing:save(guild,id,timer)
 	Database:Update(guild)
 end
 function Timing:delete(guild,id)
-	return Database:Delete(guild,'Timers/'..id)
+	return Database:Delete(guild,'Timers',id)
 end
 function Timing:newTimer(guild,secs,data,ign)
 	if type(secs)~='number'then secs=5 end
