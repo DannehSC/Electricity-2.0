@@ -152,8 +152,9 @@ function sendMessage(obj,con,emb)
 		return obj:send(con)
 	end
 	if doSend then
-		sendMessage(obj,'-'..orig:sub(1983))
+		return sendMessage(obj,'-'..orig:sub(1983))
 	end
+	client:warning('Unable to sendMessage, object provided has none of the following.. [reply, sendMessage, send] And therefore sendMessage cannot complete.')
 end
 function sendTempMessage(tab,seconds)
 	coroutine.wrap(function()
@@ -370,7 +371,7 @@ function commandDocsDump()
 	local a=io.open('docs.txt','w')
 	local b=a:write(('%s\n%s\n%s\n%s\n%s'):format(asdf[1],asdf[2],asdf[3],asdf[4],asdf[5]))
 	local c=b:flush()
-	local d=c:close()
+	--local d=c:close()
 end
 function split(msg,bet)
 	local f=msg:find(bet)
@@ -509,6 +510,45 @@ function toSeconds(tim)
 		s=s+(secs[typ]*val)
 	end
 	return s
+end
+function fromSeconds(tim)
+	local secs={
+		years=31536000,
+		months=60*60*24*31,
+		weeks=60*60*24*7,
+		days=60*60*24,
+		hours=60*60,
+		minutes=60,
+		seconds=1,
+	}
+	local ret={
+		years=0,
+		months=0,
+		weeks=0,
+		days=0,
+		hours=0,
+		minutes=0,
+		seconds=0,
+	}
+	for typ,val in pairs(secs)do
+		if tim>=tonumber(val)then
+			repeat
+				tim=tim-tonumber(val)
+				ret[typ]=ret[typ]+1
+			until tim<tonumber(val)
+		end
+	end
+	return ret
+end
+function timeBetween(tim)
+	local dat,str=fromSeconds(tim),''
+	for i,v in pairs(dat)do
+		if v>0 then
+			local s=tostring(i)
+			str=str..', '..tostring(v)..' '..(v==1 and s:sub(1,#s-1)or s)
+		end
+	end
+	return str:sub(3)
 end
 function resolveGuild(guild)
 	local ts=tostring

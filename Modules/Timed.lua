@@ -5,23 +5,22 @@ Timing={
 }
 function Timing:on(f)
 	assert(type(f)=='function','Error: X3F - callback not function')
-	table.insert(Timing._callbacks,f)
+	table.insert(self._callbacks,f)
 end
 function Timing:fire(...)
-	for i,cb in pairs(Timing._callbacks)do
+	for i,cb in pairs(self._callbacks)do
 		coroutine.wrap(cb)(...)
 	end
 end
 function Timing:load(guild)
 	local timers=Database:Get(guild).Timers or{}
 	for id,timer in pairs(timers)do
-		p(id,timer)
 		if timer.endTime<os.time()then
-			coroutine.wrap(function()print(Timing:delete(guild,id))end)()
+			coroutine.wrap(function()self:delete(guild,id)end)()
 			if timer.stopped==true then return end
-			Timing:fire(timer.data)
+			self:fire(timer.data)
 		else
-			Timing:newTimer(guild,timer.endTime-os.time(),timer.data,true)
+			self:newTimer(guild,timer.endTime-os.time(),timer.data,true)
 		end
 	end
 end
@@ -31,7 +30,8 @@ function Timing:save(guild,id,timer)
 	Database:Update(guild)
 end
 function Timing:delete(guild,id)
-	return Database:Delete(guild,'Timers',id)
+	self._timers[id]=nil
+	return Database:Delete(guild,id)
 end
 function Timing:newTimer(guild,secs,data,ign)
 	if type(secs)~='number'then secs=5 end
@@ -41,17 +41,15 @@ function Timing:newTimer(guild,secs,data,ign)
 	local id=ssl.base64(f('%s|%s|%s',ssl.random(20),ms,data),true):gsub('/','')
 	timer.setTimeout(ms,function()
 		coroutine.wrap(function()
-			print(Timing:delete(guild,id))
-			if not Timing._timers[id]then return end
-			if Timing._timers[id].stopped then return end
-			print(data)
-			Timing:fire(data)
-			print'ended'
+			if not self._timers[id]then return end
+			if self._timers[id].stopped then return end
+			self:fire(data)
+			self:delete(guild,id)
 		end)()
 	end)
 	local tab={duration=secs,endTime=os.time()+secs,stopped=false,data=data}
-	Timing._timers[id]=tab
-	if not ign then Timing:save(guild,id,tab)end
+	self._timers[id]=tab
+	if not ign then self:save(guild,id,tab)end
 	return id
 end
 function Timing:endTimer(timerId)
@@ -60,4 +58,13 @@ function Timing:endTimer(timerId)
 	else
 		self._timers[timerId].stopped=true
 	end
+end
+function Timing:getTimers(txt)
+	local t={}
+	for i,v in pairs(self._timers)do
+		if v.data:find(txt)then
+			t[i]=v
+		end
+	end
+	return t
 end

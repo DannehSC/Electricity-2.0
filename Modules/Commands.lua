@@ -94,11 +94,11 @@ addCommand('Cat picture','Gets a cat picture',{'cat','kitty','cpic'},0,false,fal
 	local file,err=API.Misc:Cats()
 	sendMessage(message,file or err)
 end)
-addCommand('Coin flip!','Flips a coin!',{'cflip','coinflip','flippy'},0,false,false,false,function(args,message)
+addCommand('Coin flip!','Flips a coin!',{'cflip','coinflip','flippy'},0,false,false,false,function(message,args)
 	local f=math.random(1,2)
 	sendMessage(message,embed(nil,(f==1 and"Tails"or"Heads"),colors.yellow),true)
 end)
-addCommand('Roll the dice','Dice!',{'rtdice','dice','roll'},0,false,false,false,function(args,message)
+addCommand('Roll the dice','Dice!',{'rtdice','dice','roll'},0,false,false,false,function(message,args)
 	local f=math.random(1,6)
 	sendMessage(message,embed(nil,"You rolled a "..tostring(f),colors.yellow),true)
 end)
@@ -306,19 +306,48 @@ addCommand('Kill','Kills a person with a super zapper!',{'kill','die','youaredea
 		end
 	end)()
 end)
-addCommand('Remind','Remind you of <message>|/t Time (REQUIRED)',{'remind','tellmelater','remindmelater'},0,false,true,true,function(message,args,switches)
+addCommand('Remind','Remind you of <message>|/t Time /l List',{'remind','tellmelater','remindmelater'},0,false,true,true,function(message,args,switches)
+	local guild=message.guild
+	local member=message.member
+	if switches['l']then
+		local list=''
+		local timers=Timing:getTimers(message.author.id)
+		if #timers<1 then
+			list='No timers present.'
+		end
+		for i,v in pairs(timers)do
+			local tx=''
+			local spl=string.split(v.data,'||')
+			local typ,chan,time,time_left=spl[1],'','',''
+			if typ=='REMINDER'then
+				guil=spl[2]
+				if guild.id~=guil then return end
+				chan=spl[3]
+				time=timeBetween(toSeconds(parseTime(spl[5])))
+				if spl[5]=='nil'then time='<UNKNOWN?>'end
+				time_left=timeBetween(v.endTime-os.time())
+				local chan=guild:getChannel(chan)or{id=chan,mentionString='<NOT FOUND>'}
+				tx=tx..string.format('**Type: %s**\nChannel: %s\nTime: %s\nTime left: %s',typ,chan.mentionString,time,time_left)
+			else
+				tx=tx..typ
+			end
+			list=list..tx..'\n'
+		end
+		if #list>2000 then
+			list='Too many timers to list.'
+		end
+		return sendMessage(message,embed('List',list,colors.bright_blue),true)
+	end
 	if not switches['t']then
 		return sendMessage(message,"Time switch (/t) not provided.")
 	end
 	local time=switches['t']
 	local secs=toSeconds(parseTime(switches['t']))
-	local guild=message.guild
-	local member=message.member
 	local tx=args[1]:gsub('||',('|'..string.char(226,128,139)..'|'))
 	local found=args[1]:find('/t')
 	tx=tx:sub(1,found-2)
 	Timing:newTimer(guild,secs,string.format('REMINDER||%s||%s||%s||%s||%s',guild.id,message.channel.id,member.id,time,tx))
-	sendMessage(message,embed('Reminder','Set new reminder for '..time..' from now.',colors.blue),true)
+	sendMessage(message,embed('Reminder','Set new reminder for '..timeBetween(secs)..' from now.',colors.blue),true)
 end)
 addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute /t Time',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()

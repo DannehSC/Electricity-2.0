@@ -189,12 +189,12 @@ function Events.Timing(data)--todo: bypass time mutes with global mute
 			local c=g:getChannel(args[3])
 			local m=g:getMember(args[4])
 			if not m then return end
-			local time=args[5]
+			local time=timeBetween(toSeconds(parseTime(args[5])))
 			local obj=c or m
 			if obj then
 				sendMessage(obj,{
 					content=m.mentionString,
-					embed=embed('Reminder',('You asked to be reminded of \''..args[6]..'\' '..time..' ago.'),colors.blue)
+					embed=embed('Reminder',('You asked to be reminded of `'..args[6]..'` '..time..' ago.'),colors.blue)
 				})
 			end
 		end

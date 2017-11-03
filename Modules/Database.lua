@@ -319,7 +319,7 @@ function Database:Update(guild,query,index,value)
 		if not Database.Cache[id].id then
 			Database.Cache[id].id=id
 		end
-		local data,err,edata=conn.reql().db('electricity').table('guilds').inOrUp(Database.Cache[id]).run()
+		local data,err,edata=conn.reql().db('electricity').table('guilds').inOrRe(Database.Cache[id]).run()
 		if err then
 			print('UPDATE')
 			print(err)
@@ -329,22 +329,20 @@ function Database:Update(guild,query,index,value)
 		print"Fetch data before trying to update it. You fool."
 	end
 end
-function Database:Delete(guild,query,index)
+function Database:Delete(guild,index)
 	if not guild then error"No ID/Guild/Message provided"end
 	local id,guild=resolveGuild(guild)
 	if Database.Cache[id]then
 		local Cached=Database.Cache[id]
 		if Cached[index]then
 			Cached[index]=nil
+		elseif Cached.Timers[index]then
+			Cached.Timers[index]=nil
+		elseif Cached.Roles[index]then
+			Cached.Roles[index]=nil
 		end
 	end
-	local data,err=conn.reql().db('electricity').table('guilds').get(id).getField(query).filter({id=index}).delete().run()
-	if err then
-		print('DELETE',err)
-		return err
-	else
-		return data
-	end
+	Database:Update(guild)
 end
 function Database:GetCached(guild)
 	local id,guild=resolveGuild(guild)
