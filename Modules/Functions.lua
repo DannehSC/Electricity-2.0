@@ -2,6 +2,7 @@
 operatingsystem=require('ffi').os
 color=discordia.Color.fromRGB
 mutex=discordia.Mutex()
+hparser=require('html-parser')
 pprint=require("pretty-print")
 query=require("querystring")
 enclib=require("encrypter")
@@ -112,13 +113,13 @@ function checkArgs(types,vals)
 	end
 	return true,'',#vals
 end
+function getTimestamp()
+	return discordia.Date():toISO('T','Z')
+end
 function set(a,b,c)
 	if a then
 		b[c]=a
 	end
-end
-function getTimestamp()
-	return discordia.Date():toISO('T','Z')
 end
 function embed(title,desc,color,fields,other)
 	local emb={}
@@ -308,6 +309,7 @@ function filter(message)
 	end
 end
 function getIdFromString(str)
+	p(str,type(str))
 	local fs=str:find('<')
 	local fe=str:find('>')
 	if not fs or not fe then return end
@@ -332,6 +334,77 @@ function voiceKick(member)
 	else
 		return"No voice channel to kick them from!"
 	end
+end
+function splitForDiscord()
+	local f=string.format
+	local r0t,r1t,r2t,r3t,r4t='__**Rank 0 (User)**__\n','__**Rank 1 (Moderator)**__\n','__**Rank 2 (Administrator)**__\n','__**Rank 3 (Server Owner)**__\n','__**Rank 4 (Bot Creator)**__\n'
+	local r0,r1,r2,r3,r4={},{},{},{},{}
+	local n,pages,out,ret=0,0,'',{}
+	local function makeDoc(commandTable)
+		local text='**%s**\n*Description:* %s\n*Commands:* %s\n*Rank:* %s\n*Switches:* %s\n*Server only:* %s\n'
+		local sep=(commandTable.Description:find('|')or #commandTable.Description+1)
+		local desc,switches=commandTable.Description:sub(1,sep-1),commandTable.Description:sub(sep+1)
+		if #switches==0 then
+			switches='None'
+		end
+		return text:format(commandTable.Name,desc,table.concat(commandTable.Commands,','),tostring(commandTable.Rank),switches,(not commandTable.serverOnly and'False'or'True'))
+	end
+	local function addText(tx)
+		local n2=#tx
+		if n+n2>2047 then
+			table.insert(ret,out)
+			out=tx
+			n=n2
+			pages=pages+1
+		else
+			n=n+n2
+			out=out..tx
+		end
+	end
+	for i,v in orderedPairs(Commands)do
+		if v.Rank==0 then
+			table.insert(r0,v)
+		end
+		if v.Rank==1 then
+			table.insert(r1,v)
+		end
+		if v.Rank==2 then
+			table.insert(r2,v)
+		end
+		if v.Rank==3 then
+			table.insert(r3,v)
+		end
+		if v.Rank==4 then
+			table.insert(r4,v)
+		end
+	end
+	addText(r0t)
+	for i,v in pairs(r0)do
+		addText(makeDoc(v))
+	end
+	addText(r1t)
+	for i,v in pairs(r1)do
+		addText(makeDoc(v))
+	end
+	addText(r2t)
+	for i,v in pairs(r2)do
+		addText(makeDoc(v))
+	end
+	addText(r3t)
+	for i,v in pairs(r3)do
+		addText(makeDoc(v))
+	end
+	addText(r4t)
+	for i,v in pairs(r4)do
+		addText(makeDoc(v))
+	end
+	pages=pages+1
+	table.insert(ret,out)
+	for i=1,#ret do
+		local v=ret[i]
+		ret[i]=embed(f('Commands [%s/%s]',i,pages),v,colors.yellow)
+	end
+	return ret
 end
 function commandDocsDump()
 	local r0t,r1t,r2t,r3t,r4t='# Rank 0 (User)\n\n','# Rank 1 (Moderator)\n\n','# Rank 2 (Administrator)\n\n','# Rank 3 (Server Owner)\n\n','# Rank 4 (Bot Creator)\n\n'
@@ -603,4 +676,11 @@ function reasonEnforced(guild)
 	if convertToBool(settings.mod_log)==true then
 		return true
 	end
+end
+function getCount(t)
+	local n=0
+	for i,v in pairs(t)do
+		n=n+1
+	end
+	return n
 end

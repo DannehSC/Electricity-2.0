@@ -1,7 +1,6 @@
 --COMMANDS.LUA--
 --[[
 	POSSIBLE:
-		Timed mute.
 		Emergency staff command shut off.
 		
 ]]
@@ -27,7 +26,7 @@ end)
 addCommand('Join2','Sends a raw link to join the official Electricity guild!','join2',0,false,false,false,function(message,args)
 	sendMessage(message.author,"https://discordapp.com/invite/KCMxtK8")
 end)
-addCommand('About','Reads you info about the bot.','about',0,false,false,false,function(message,args)
+addCommand('About','Reads you info about the bot.',{'about','help'},0,false,false,false,function(message,args)
 	local tx=''
 	local owner=client.owner
 	local bet=Database:Get(message).Settings.bet
@@ -111,7 +110,19 @@ addCommand('Joke','Gets a joke',{'joke','joker','batmansparents','dadjoke'},0,fa
 	sendMessage(message,joke)
 end)
 addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,false,false,function(message,args)
-	sendMessage(message,embed("Commands","The commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>",colors.yellow),true)
+	local cmds=splitForDiscord()
+	local msg=sendMessage(message.author,'Sending commands')
+	if msg then
+		msg:delete()
+		for i=1,#cmds do
+			sendMessage(message.author,cmds[i],true)
+		end
+		if message.guild~=nil then
+			sendMessage(message,embed('Notification','Commands sent to DMs.',colors.yellow),true)
+		end
+	else
+		sendMessage(message,embed("Commands","__***Could not send commands via DM.***__\nThe commands list has been moved to a webpage!\n<https://github.com/DannehSC/Electricity-2.0/wiki/Commands>",colors.yellow),true)
+	end
 end)
 addCommand('Calculate','Calculates math.',{'calc','calculate'},0,false,false,false,function(message,args)
 	if #args[1]<1 then return sendMessage(message,embed(nil,"You must specify what to calculate.",colors.red),true)end
@@ -195,8 +206,14 @@ addCommand('Guild info','Fetches info about the guild','ginfo',0,false,true,fals
 		{name="This guild was created at:",value=convertJoinedAtToTime(guild.timestamp)},
 	}),true)
 end)
-addCommand('Base64','Encodes your message with base64','b64',0,false,false,false,function(message,args,switches)
-	sendMessage(message,embed("Base64",ssl.base64(args[1]),colors.blue),true)
+addCommand('Base64','Encodes your message with base64|/u Unbase64','b64',0,false,false,true,function(message,args,switches)
+	local data
+	if switches['u']then
+		data=ssl.base64(args[1],false)
+	else
+		data=ssl.base64(args[1],true)
+	end
+	sendMessage(message,embed("Base64",data,colors.blue),true)
 end)
 addCommand('Destroy','Destroys your message.|/ct Custom text','destroy',0,false,false,true,function(message,args,switches)
 	local tx,ct=args[1],''
@@ -312,7 +329,7 @@ addCommand('Remind','Remind you of <message>|/t Time /l List',{'remind','tellmel
 	if switches['l']then
 		local list=''
 		local timers=Timing:getTimers(message.author.id)
-		if #timers<1 then
+		if getCount(timers)<1 then
 			list='No timers present.'
 		end
 		for i,v in pairs(timers)do
@@ -726,6 +743,7 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 		txt=txt:gsub(token,'<Hidden for security>')
 		orig(txt)
 		tx=tx..'\n'..txt
+		return txt
 	end
 	local function fp(...)
 		local n = select('#', ...)
@@ -733,7 +751,9 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 		for i = 1, n do
 			arguments[i] = pprint.dump(arguments[i],nil,true):gsub(token,'<Hidden for security>')
 		end
-		tx=tx..table.concat(arguments, "\t").."\n"
+		local txt=table.concat(arguments, "\t").."\n"
+		tx=tx..txt
+		return txt
 	end
 	local toload=args[1]:gsub('```lua',''):gsub('```','')
 	local a,b=loadstring(toload,'Electricity 2.0')

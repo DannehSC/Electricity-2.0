@@ -16,9 +16,12 @@ function Timing:load(guild)
 	local timers=Database:Get(guild).Timers or{}
 	for id,timer in pairs(timers)do
 		if timer.endTime<os.time()then
-			coroutine.wrap(function()self:delete(guild,id)end)()
-			if timer.stopped==true then return end
-			self:fire(timer.data)
+			coroutine.wrap(function()
+				self:delete(guild,id)
+				if timer.stopped==true then return end
+				timer.data=timer.data..'||'..(os.time()-timer.endTime)
+				self:fire(timer.data)
+			end)()
 		else
 			self:newTimer(guild,timer.endTime-os.time(),timer.data,true)
 		end
@@ -43,6 +46,7 @@ function Timing:newTimer(guild,secs,data,ign)
 		coroutine.wrap(function()
 			if not self._timers[id]then return end
 			if self._timers[id].stopped then return end
+			data=data..'||'..(os.time()-self._timers[id].endTime)
 			self:fire(data)
 			self:delete(guild,id)
 		end)()

@@ -1,5 +1,5 @@
 --NEW DATABASE--
-local data=require('./database.lua')
+local data=options.Database
 local rethink=require('luvit-reql')
 local conn=rethink.connect(data)
 local ts,fmt=tostring,string.format
@@ -24,9 +24,11 @@ Database.Default={
 		bet='elec!',
 		banned_phrases={},
 		co_owner_roles={},
+		log_deleted='false',
 		mod_roles={},
 		mod_log='false',
 		mod_log_chan='default---channel',
+		other_logs='default---channel',
 		verify='false',
 		verify_role='Member',
 		verify_chan='default---channel',
@@ -309,6 +311,18 @@ function Database:Get(guild,index)
 		end
 	end
 end
+function Database:RawGet(guild,index)
+	local id,guild=resolveGuild(guild)
+	local data,err=Database._conn.reql().db('electricity').table('guilds').get(tostring(id)).run()
+	if err then
+		print('GET',err)
+	else
+		if data==nil or data==json.null or data[1]==nil then
+			p('no data? -raw')
+		end
+		return data
+	end
+end
 function Database:Update(guild,query,index,value)
 	if not guild then error"No ID/Guild/Message provided"end
 	local id,guild=resolveGuild(guild)
@@ -325,6 +339,7 @@ function Database:Update(guild,query,index,value)
 			print(err)
 			p(edata)
 		end
+		return data,err,edata
 	else
 		print"Fetch data before trying to update it. You fool."
 	end

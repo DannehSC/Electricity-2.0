@@ -102,24 +102,37 @@ function Events.messageCreate(message)
 	end
 end
 function Events.messageUpdate(message)
-	local settings={}
-	local isServer=false
 	if message.author.bot==true then return end
-	if message.channel.isPrivate then
-		--do nothing, it doesn't really matter
-	else
-		settings=Database:Get(message).Settings
-		isServer=true
-		local filt,reason=filter(message)
-		if filt then
-			local reply=message:reply(fmt("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
-			message:delete()
-			coroutine.wrap(function()
-				timer.setTimeout(10*1000,coroutine.wrap(function()
-					reply:delete()
-				end))
-			end)()
-			return
+	if message.channel.isPrivate then return end
+	local settings=Database:Get(message).Settings
+	local filt,reason=filter(message)
+	if filt then
+		local reply=message:reply(fmt("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
+		message:delete()
+		coroutine.wrap(function()
+			timer.setTimeout(10*1000,coroutine.wrap(function()
+				reply:delete()
+			end))
+		end)()
+		return
+	end
+end
+function Events.messageDelete(message)
+	if message.channel.isPrivate then return end
+	local settings=Database:Get(message).Settings
+	if convertToBool(settings.log_deleted)==true then
+		local chan=resolveChannel(message.guild,settings.other_logs)
+		if chan then
+			local m=message.member
+			sendMessage(chan,embed('Delete Log',nil,colors.blue,{
+				{name='Name',value=m.username,inline=true},
+				{name='Descriminator',value=m.discriminator,inline=true},
+				{name='Id',value=m.id,inline=true},
+				{name='Channel',value=chan.name,inline=true},
+				{name='Channel ID',value=chan.id,inline=true},
+				{name='Inline fix',value='.',inline=true},
+				{name='Message',value=tostring(message.content)},
+			},{timestamp=getTimestamp()}),true)
 		end
 	end
 end
@@ -146,6 +159,9 @@ function Events.guildCreate(guild)
 			sendMessage(chan,embed('New guild!',tx,colors.blue),true)
 		end
 	end
+	if not _G.beta and API.Data.Stats.NG==true then
+		API.Stats:Post()
+	end
 end
 function Events.guildDelete(guild)
 	for g in client.guilds:iter()do
@@ -158,6 +174,9 @@ function Events.guildDelete(guild)
 			end
 			sendMessage(chan,embed('Left guild! :(',tx,colors.blue),true)
 		end
+	end
+	if not _G.beta and API.Data.Stats.NG==true then
+		API.Stats:Post()
 	end
 end
 function Events.Timing(data)--todo: bypass time mutes with global mute
@@ -192,9 +211,13 @@ function Events.Timing(data)--todo: bypass time mutes with global mute
 			local time=timeBetween(toSeconds(parseTime(args[5])))
 			local obj=c or m
 			if obj then
+				local txt=fmt('You asked to be reminded of `%s` after %s.',args[6],time)
+				if args[7]then
+					txt=txt..fmt('\nTimer ended %s.',(tonumber(args[7])>0 and timeBetween(tonumber(args[7]))..' ago'or'now'))
+				end
 				sendMessage(obj,{
 					content=m.mentionString,
-					embed=embed('Reminder',('You asked to be reminded of `'..args[6]..'` '..time..' ago.'),colors.blue)
+					embed=embed('Reminder',txt,colors.blue)
 				})
 			end
 		end
@@ -213,9 +236,11 @@ function Events.ready()
 	end
 	if not _G.beta then
 		timer.setInterval(360000,function()
-			coroutine.wrap(API.Carbon.Stats_Update)({
-				servercount=#client.guilds,
-			})
+			coroutine.wrap(function()
+				if not _G.beta and API.Data.Stats.Time==true then
+					API.Stats:post()
+				end
+			end)()
 		end)
 	end
 	client:info'Bot is ready.'

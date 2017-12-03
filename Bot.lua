@@ -1,11 +1,8 @@
-token=''
-hooks={}
-pcall(function()
-	token=require('./token')
-	hooks=require('./hooks')
-end)
 fs=require('fs')
 discordia=require('discordia')
+options=require('./options')
+token=options.Token
+hooks=options.Hooks
 enums=discordia.enums
 client=discordia.Client()
 uptime=discordia.Stopwatch()
@@ -58,6 +55,7 @@ coroutine.wrap(function()
 	loadModule('API')
 	client:on('messageCreate',Events.messageCreate)
 	client:on('messageUpdate',Events.messageUpdate)
+	client:on('messageDelete',Events.messageDelete)
 	client:on('guildCreate',Events.guildCreate)
 	client:on('guildDelete',Events.guildDelete)
 	client:once('ready',Events.ready)
