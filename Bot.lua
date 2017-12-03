@@ -1,63 +1,66 @@
-fs=require('fs')
-discordia=require('discordia')
-options=require('./options')
-token=options.Token
-hooks=options.Hooks
-enums=discordia.enums
-client=discordia.Client()
-uptime=discordia.Stopwatch()
-function FFB(t)--format for beta
-	if beta==true then
-		return t..'_B'
+local fs = require('fs')
+local discordia = require('discordia')
+local options = require('./options')
+local token = options.Token
+local hooks = options.Hooks
+local enums = discordia.enums
+local client = discordia.Client()
+local uptime = discordia.Stopwatch()
+
+function FFB(str)
+	if beta == true then
+		return str .. '_B'
 	else
-		return t
+		return str
 	end
 end
+
 function loadModule(name)
-	name=name..'.lua'
-	local data,others=fs.readFileSync('./Modules/'..name)
+	name = name .. '.lua'
+	local data, others = fs.readFileSync('./modules/' .. name)
 	if data then
-		local a,b=loadstring(data,name)
+		local func, syntax_err = loadstring(data, name)
 		if not a then
-			print("<SYNTAX> ERROR LOADING "..name.."\nERROR:"..b)
+			print('[Syntax Error] while loading ' .. name .. '\nError:' .. err)
 			if sendLog then
-				sendLog(hooks[FFB('Errors')],"MODULE SYNTAX",string.format("MODULE NAME: %s\nERROR: %s",name,tostring(b)))
+				sendLog(hooks[FFB('Errors')], 'Syntax Error', string.format('Name: %s\nError: %s', name, tostring(syntax_err)))
 			end
 			return false
 		else
-			setfenv(a,getfenv())
-			local c,d=pcall(a)
-			if not c then
-				print("<RUNTIME> ERROR LOADING "..name.."\nERROR:"..d)
+			setfenv(func, getfenv())
+			local ret, runtime_err = pcall(func)
+			if not ret then
+				print('[Runtime Error] while loading ' .. name .. '\nError:' .. ret)
 				if sendLog then
-					sendLog(hooks[FFB('Errors')],"MODULE RUNTIME",string.format("MODULE NAME: %s\nERROR: %s",name,tostring(d)))
+					sendLog(hooks[FFB('Errors')], 'Runtime Error', string.format('Name: %s\nError: %s', name, tostring(runtime_err)))
 				end
 				return false
 			else
-				client:info('Module online: '..name)
+				client:info('Module Online: '..name)
 			end
 		end
 	else
-		print("<LOADING> ERROR LOADING "..name.."\nERROR:"..tostring(data),tostring(others))
+		print('[Loading Error] in '..name..'\nError:'..tostring(data), tostring(others))
 		if sendLog then
-			sendLog(hooks[FFB('Errors')],"MODULE LOADING",string.format("MODULE NAME: %s\nERROR: %s",name,tostring(data)..'\n'..tostring(others)))
+			sendLog(hooks[FFB('Errors')], 'Loading Error', string.format('Name: %s\nERROR: %s\n%s', name, tostring(data), tostring(others)))
 		end
 		return false
 	end
 end
+
 coroutine.wrap(function()
-	loadModule('Utilities')
-	loadModule('Functions')
-	loadModule('Database')
-	loadModule('Commands')
-	loadModule('Events')
-	loadModule('Timed')
+	loadModule('utilities')
+	loadModule('functions')
+	loadModule('database')
+	loadModule('commands')
+	loadModule('events')
+	loadModule('timed')
 	loadModule('API')
-	client:on('messageCreate',Events.messageCreate)
-	client:on('messageUpdate',Events.messageUpdate)
-	client:on('messageDelete',Events.messageDelete)
-	client:on('guildCreate',Events.guildCreate)
-	client:on('guildDelete',Events.guildDelete)
-	client:once('ready',Events.ready)
-	client:run('Bot '..token)
+	client:on('messageCreate', Events.messageCreate)
+	client:on('messageUpdate', Events.messageUpdate)
+	client:on('messageDelete', Events.messageDelete)
+	client:on('guildCreate', Events.guildCreate)
+	client:on('guildDelete', Events.guildDelete)
+	client:once('ready', Events.ready)
+	client:run(token)
 end)()

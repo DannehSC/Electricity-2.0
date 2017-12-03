@@ -169,7 +169,7 @@ function getRank(member,server)
 	local guild=member.guild
 	local rank=0
 	if server then
-		local settings=Database:Get(member.guild).Settings
+		local settings=database:get(member.guild).Settings
 		for i,v in pairs(settings.mod_roles)do
 			local o=member.guild:getRole(v)
 			if o then
@@ -295,7 +295,7 @@ function convertToBool(t)
 end
 function filter(message)
 	local content=message.content
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	if getRank(message.member)>1 then return end
 	if settings.anti_link then
 		if content:find('discord.gg/')or content:find('discordapp.com/oauth2/authorize?client_id=')or client:find('discordapp.com/api/oauth2/authorize?client_id=')then
@@ -465,7 +465,7 @@ function convertJoinedAtToTime(tim)
 	return(Time1..':'..Time2:sub(1,5).." "..M.." - "..Date)
 end
 function newVote(guild,member,topic,voptions)
-	local vote=Database:Get(guild).Votes
+	local vote=database:get(guild).Votes
 	if vote.activeVote then
 		return"Invalid vote. [VOTE ALREADY RUNNING]"
 	end
@@ -484,19 +484,19 @@ function newVote(guild,member,topic,voptions)
 	return vote
 end
 function endVote(guild)
-	local vote=Database:Get(guild).Votes
+	local vote=database:get(guild).Votes
 	if not vote.activeVote then
 		return"Invalid vote. [NO VOTE RUNNING]"
 	end
 	local tx="End of vote results: \n\n"..getVoteCount(guild)
-	local db=Database:Get(guild).Votes
+	local db=database:get(guild).Votes
 	db.activeVote=nil
-	Database:Update(guild)
+	database:update(guild)
 	return tx
 end
 function getVoteCount(guild)
 	local tx=''
-	local vote=Database:Get(guild).Votes
+	local vote=database:get(guild).Votes
 	if vote.activeVote then
 		local vdata=vote.activeVote
 		tx=tx..'Vote topic: '..vdata.topic..'\n\nOptions:\n'
@@ -510,7 +510,7 @@ function getVoteCount(guild)
 	return tx
 end
 function addVote(guild,member,optionNum)
-	local vote=Database:Get(guild).Votes
+	local vote=database:get(guild).Votes
 	if vote.activeVote then
 		local vdata=vote.activeVote
 		for i,v in pairs(vdata.options)do
@@ -526,7 +526,7 @@ function addVote(guild,member,optionNum)
 		if op then
 			op.count=op.count+1
 			table.insert(op.voters,member.id)
-			Database:Update(guild)
+			database:update(guild)
 			return"Valid vote. [COUNT ADDED]\n"..getVoteCount(guild)
 		else
 			return"Invalid vote. [OPTION DOES NOT EXIST]"
@@ -651,7 +651,7 @@ function resolveChannel(guild,name)
 end
 function sendAudit(guild,content,embed)
 	local id,guild=resolveGuild(guild)
-	local settings=Database:Get(guild).Settings
+	local settings=database:get(guild).Settings
 	if convertToBool(settings.audit_log)==true then
 		local chan=resolveChannel(guild,settings.audit_log_chan)
 		if chan then
@@ -661,7 +661,7 @@ function sendAudit(guild,content,embed)
 end
 function sendModLog(guild,fields)
 	local id,guild=resolveGuild(guild)
-	local settings=Database:Get(guild).Settings
+	local settings=database:get(guild).Settings
 	if convertToBool(settings.mod_log)==true then
 		local chan=resolveChannel(guild,settings.mod_log_chan)
 		if chan then
@@ -671,7 +671,7 @@ function sendModLog(guild,fields)
 end
 function reasonEnforced(guild)
 	local id,guild=resolveGuild(guild)
-	local settings=Database:Get(guild).Settings
+	local settings=database:get(guild).Settings
 	if convertToBool(settings.mod_log)==true then
 		return true
 	end
