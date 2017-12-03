@@ -29,7 +29,7 @@ end)
 addCommand('About','Reads you info about the bot.',{'about','help'},0,false,false,false,function(message,args)
 	local tx=''
 	local owner=client.owner
-	local bet=Database:Get(message).Settings.bet
+	local bet=database:get(message).Settings.bet
 	function append(ntx,fin)
 		fin=fin or false
 		tx=tx..ntx..(fin==false and'\n\n'or'')
@@ -227,7 +227,7 @@ addCommand('Destroy','Destroys your message.|/ct Custom text','destroy',0,false,
 end)
 addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(message,args)
 	local guild=message.guild
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	local chan=guild.textChannels:find(function(c)
 		return c.name==settings.verify_chan
 	end)
@@ -270,7 +270,7 @@ addCommand('Verify','Verifies yourself','verify',0,false,true,false,function(mes
 end)
 addCommand('Vote','Vote handler command.|/start Starts vote /add Add vote to <option> /h Help /stop Stops vote',{'vote','stuffballotbox'},0,false,true,true,function(message,args,switches)
 	local guild=message.guild
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	local ctb=convertToBool
 	if ctb(settings.voting)==true and guild:getChannel('name',settings.voting_chan).id~=message.channel.id then 
 		return sendMessage(message,embed(nil,"Invalid vote. [WRONG CHANNEL]",colors.red),true)
@@ -284,8 +284,8 @@ addCommand('Vote','Vote handler command.|/start Starts vote /add Add vote to <op
 			if type(vote)=='string'then
 				sendMessage(message,tostring(vote))
 			else
-				Database:Get(guild).Votes['activeVote']=vote
-				Database:Update(guild)
+				database:get(guild).Votes['activeVote']=vote
+				database:update(guild)
 				sendMessage(message,getVoteCount(guild))
 			end
 		else
@@ -363,7 +363,7 @@ addCommand('Remind','Remind you of <message>|/t Time /l List',{'remind','tellmel
 	local tx=args[1]:gsub('||',('|'..string.char(226,128,139)..'|'))
 	local found=args[1]:find('/t')
 	tx=tx:sub(1,found-2)
-	Timing:newTimer(guild,secs,string.format('REMINDER||%s||%s||%s||%s||%s',guild.id,message.channel.id,member.id,time,tx))
+	Timing:new(guild,secs,string.format('REMINDER||%s||%s||%s||%s||%s',guild.id,message.channel.id,member.id,time,tx))
 	sendMessage(message,embed('Reminder','Set new reminder for '..timeBetween(secs)..' from now.',colors.blue),true)
 end)
 addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute /t Time',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
@@ -415,7 +415,7 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 								mute(member,message.channel)
 							end
 							if secs then
-								Timing:newTimer(guild,secs,string.format('UNMUTE||%s||%s||%s',guild.id,(global and'all'or message.channel.id),member.id))
+								Timing:new(guild,secs,string.format('UNMUTE||%s||%s||%s',guild.id,(global and'all'or message.channel.id),member.id))
 							end
 							sendMessage(message,(global and"Globally muted "or"Muted ")..member.mentionString..(secs and' | For '..switches['t']or''))
 						end
@@ -434,7 +434,7 @@ end)
 addCommand('Kick','Kicks a member.|/r Reason',{'kick','deport'},1,false,true,true,function(message,args,switches)
 	local reason
 	local bm,voice=getBotMember(message.guild),false
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	if switches['r']then
 		reason=switches.r
 	end
@@ -574,7 +574,7 @@ addCommand('Ban','Bans a member.|/r Reason /u Unban /l Ban list',{'ban','banish'
 end)
 addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l Settings list',{'settings','set'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	if switches.s then
 		if switches.s:sub(#switches.s)==' 'then
 			switches.s=switches.s:sub(1,#switches.s-1)
@@ -590,8 +590,8 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 						sendMessage(message,data)
 					end
 				else
-					Database:GetCached(guild).Settings[switches.s]=switches.v
-					Database:Update(guild)
+					database:getCached(guild).Settings[switches.s]=switches.v
+					database:update(guild)
 					sendMessage(message,embed(nil,string.format("Set %s to %s",switches.s,switches.v),colors.bright_blue),true)
 				end
 			elseif switches.d then
@@ -632,7 +632,7 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 end)
 addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove value /d Description',{'lsettings','lset'},3,false,true,true,function(message,args,switches)
 	local guild=message.guild
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	local fmt=string.format
 	if switches.s then
 		if switches.s:sub(#switches.s)==' 'then
@@ -650,7 +650,7 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 					end
 				else
 					table.insert(settings[switches.s],switches.a)
-					Database:Update(guild)
+					database:update(guild)
 					sendMessage(message,embed(nil,string.format("Added %s to %s",switches.a,switches.s),colors.bright_blue),true)
 				end
 			elseif switches.r then
@@ -659,14 +659,14 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 					if o~=nil then
 						if o.name:lower()==switches.r:lower()then
 							settings[switches.s][i]=nil
-							Database:Update(guild)
+							database:update(guild)
 							sendMessage(message,embed(nil,string.format("Removed %s from %s",switches.r,switches.s),colors.bright_blue),true)
 							return
 						end
 					else
 						if v:lower()==switches.r:lower()then
 							settings[switches.s][i]=nil
-							Database:Update(guild)
+							database:update(guild)
 							sendMessage(message,embed(nil,string.format("Removed %s from %s",switches.r,switches.s),colors.bright_blue),true)
 							return
 						end
@@ -676,8 +676,8 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 			elseif switches.clear then
 				if switches.confirm then
 					sendMessage(message,fmt('Clearing %s.',settings.s))
-					Database:GetCached(guild).Settings[settings.s]=Database.Default.Settings[settings.s]
-					Database:Update(guild)
+					database:getCached(guild).Settings[settings.s]=database.Default.Settings[settings.s]
+					database:update(guild)
 				else
 					sendMessage(message,'Use the /confirm switch to confirm this clearing.')
 				end
@@ -714,22 +714,22 @@ addCommand('List Settings','Settings for lists|/s Setting /a Add value /r Remove
 end)
 addCommand('Ignore','Ignores texts in a channel.','ignore',3,false,true,false,function(message,args)
 	local chan=message.channel
-	local ignored=Database:Get(message).Ignore
+	local ignored=database:get(message).Ignore
 	ignored[chan.id]=true
-	if Database.Type=='rethinkdb'then
-		Database:Update(message)
+	if database.Type=='rethinkdb'then
+		database:update(message)
 	else
-		Database:Update('Ignore',message)
+		database:update('Ignore',message)
 	end
 end)
 addCommand('Unignore','Unignores texts in a channel.','unignore',3,false,true,false,function(message,args)
 	local chan=message.channel
-	local ignored=Database:Get(message).Ignore
+	local ignored=database:get(message).Ignore
 	ignored[chan.id]=nil
-	if Database.Type=='rethinkdb'then
-		Database:Delete(message,'Ignore/'..chan.id)
+	if database.Type=='rethinkdb'then
+		database:delete(message,'Ignore/'..chan.id)
 	else
-		Database:Update('Ignore',message)
+		database:update('Ignore',message)
 	end
 end)
 addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,function(message,args)

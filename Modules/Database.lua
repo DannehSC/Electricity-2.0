@@ -1,5 +1,5 @@
---NEW DATABASE--
-local data=options.Database
+--NEW database--
+local data=options.database
 local rethink=require('luvit-reql')
 local conn=rethink.connect(data)
 local ts,fmt=tostring,string.format
@@ -10,13 +10,13 @@ local function getTableCount(t)
 	end
 	return x
 end
-Database={
+database={
 	_raw_database=rethink,
 	_conn=conn,
 	Cache={},
 	Type='rethinkdb',
 }
-Database.Default={
+database.Default={
 	Settings={
 		admin_roles={},
 		audit_log='false',
@@ -44,7 +44,7 @@ Database.Default={
 s_pred={
 	admin_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -59,7 +59,7 @@ s_pred={
 				return"Unsuccessful! Role already in list!"
 			end
 			table.insert(settings.admin_roles,r.id)
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -67,18 +67,18 @@ s_pred={
 	end,
 	audit_log=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
 			settings.audit_log=value
-			Database:Update(guild)
+			database:update(guild)
 			return"Set audit_log to "..value
 		end
 	end,
 	audit_log_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
@@ -90,7 +90,7 @@ s_pred={
 		end
 		if c then
 			settings.audit_log_chan=c.name
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -98,7 +98,7 @@ s_pred={
 	end,
 	co_owner_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -113,7 +113,7 @@ s_pred={
 				return"Unsuccessful! Role already in list!"
 			end
 			table.insert(settings.co_owner_roles,r.id)
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -121,18 +121,18 @@ s_pred={
 	end,
 	mod_log=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
 			settings.mod_log=value
-			Database:Update(guild)
+			database:update(guild)
 			return"Set audit_log to "..value
 		end
 	end,
 	mod_log_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
@@ -144,7 +144,7 @@ s_pred={
 		end
 		if c then
 			settings.mod_log_chan=c.name
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -152,7 +152,7 @@ s_pred={
 	end,
 	mod_roles=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -167,7 +167,7 @@ s_pred={
 				return"Unsuccessful! Role already in list!"
 			end
 			table.insert(settings.mod_roles,r.id)
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
@@ -175,7 +175,7 @@ s_pred={
 	end,
 	verify_role=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local r
 		local this=getIdFromString(name)
 		if this then
@@ -187,7 +187,7 @@ s_pred={
 		end
 		if r then
 			settings.verify_role=r.id
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully set verify role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..r.name..")"
@@ -195,7 +195,7 @@ s_pred={
 	end,
 	verify_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
@@ -207,7 +207,7 @@ s_pred={
 		end
 		if c then
 			settings.verify_chan=c.name
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully set verify channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -215,29 +215,29 @@ s_pred={
 	end,
 	verify=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
 			settings.verify=value
-			Database:Update(guild)
+			database:update(guild)
 			return"Set verify to "..value
 		end
 	end,
 	voting=function(value,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
 			settings.voting=value
-			Database:Update(guild,nil,'voting',value)
+			database:update(guild,nil,'voting',value)
 			return"Set audit_log to "..value
 		end
 	end,
 	voting_chan=function(name,message)
 		local guild=message.guild
-		local settings=Database:Get(guild).Settings
+		local settings=database:get(guild).Settings
 		local c
 		local this=getIdFromString(name)
 		if this then
@@ -249,7 +249,7 @@ s_pred={
 		end
 		if c then
 			settings.voting_chan=c.name
-			Database:Update(guild)
+			database:update(guild)
 			return"Successfully set audit log channel! ("..c.mentionString..")"
 		else
 			return"Unsuccessful! Channel does not exist! ("..name..")"
@@ -267,37 +267,37 @@ descriptions={
 	verify_chan='Channel where users can verify.',
 	verify_role='Role given to a member when verified using the verification system.',
 }
-function Database:Get(guild,index)
+function database:get(guild,index)
 	local id,guild=resolveGuild(guild)
-	if Database.Cache[id]then
-		local Cached=Database.Cache[id]
+	if database.Cache[id]then
+		local Cached=database.Cache[id]
 		if Cached[index]then
 			return Cached[index]
 		else
 			return Cached
 		end
 	else
-		local data,err=Database._conn.reql().db('electricity').table('guilds').get(tostring(id)).run()
+		local data,err=database._conn.reql().db('electricity').table('guilds').get(tostring(id)).run()
 		if err then
 			print('GET',err)
 		else
 			local u
 			if data==nil or data==json.null or data[1]==nil then
-				data=table.deepcopy(Database.Default)
+				data=table.deepcopy(database.Default)
 				data.id=id
-				Database.Cache[id]=data
+				database.Cache[id]=data
 				u=true
 			else
 				local data=data[1]
-				Database.Cache[id]=data
-				Database.Cache[id]['id']=id
-				for i,v in pairs(Database.Default)do
+				database.Cache[id]=data
+				database.Cache[id]['id']=id
+				for i,v in pairs(database.Default)do
 					if not data[i]then
 						data[i]=v
 						u=true
 					end
 				end
-				for i,v in pairs(Database.Default.Settings)do
+				for i,v in pairs(database.Default.Settings)do
 					if not data.Settings[i]then
 						data.Settings[i]=v
 						u=true
@@ -305,15 +305,15 @@ function Database:Get(guild,index)
 				end
 			end
 			if u then
-				Database:Update(id)
+				database:update(id)
 			end
 			return data
 		end
 	end
 end
-function Database:RawGet(guild,index)
+function database:RawGet(guild,index)
 	local id,guild=resolveGuild(guild)
-	local data,err=Database._conn.reql().db('electricity').table('guilds').get(tostring(id)).run()
+	local data,err=database._conn.reql().db('electricity').table('guilds').get(tostring(id)).run()
 	if err then
 		print('GET',err)
 	else
@@ -323,17 +323,17 @@ function Database:RawGet(guild,index)
 		return data
 	end
 end
-function Database:Update(guild,query,index,value)
+function database:update(guild,query,index,value)
 	if not guild then error"No ID/Guild/Message provided"end
 	local id,guild=resolveGuild(guild)
-	if Database.Cache[id]then
+	if database.Cache[id]then
 		if index then
-			Database.Cache[id][index]=value
+			database.Cache[id][index]=value
 		end
-		if not Database.Cache[id].id then
-			Database.Cache[id].id=id
+		if not database.Cache[id].id then
+			database.Cache[id].id=id
 		end
-		local data,err,edata=conn.reql().db('electricity').table('guilds').inOrRe(Database.Cache[id]).run()
+		local data,err,edata=conn.reql().db('electricity').table('guilds').inOrRe(database.Cache[id]).run()
 		if err then
 			print('UPDATE')
 			print(err)
@@ -344,11 +344,11 @@ function Database:Update(guild,query,index,value)
 		print"Fetch data before trying to update it. You fool."
 	end
 end
-function Database:Delete(guild,index)
+function database:delete(guild,index)
 	if not guild then error"No ID/Guild/Message provided"end
 	local id,guild=resolveGuild(guild)
-	if Database.Cache[id]then
-		local Cached=Database.Cache[id]
+	if database.Cache[id]then
+		local Cached=database.Cache[id]
 		if Cached[index]then
 			Cached[index]=nil
 		elseif Cached.Timers[index]then
@@ -357,11 +357,11 @@ function Database:Delete(guild,index)
 			Cached.Roles[index]=nil
 		end
 	end
-	Database:Update(guild)
+	database:update(guild)
 end
-function Database:GetCached(guild)
+function database:getCached(guild)
 	local id,guild=resolveGuild(guild)
-	if Database.Cache[id]then
-		return Database.Cache[id]
+	if database.Cache[id]then
+		return database.Cache[id]
 	end
 end

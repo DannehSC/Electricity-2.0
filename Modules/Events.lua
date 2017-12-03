@@ -8,14 +8,14 @@ Cooldowns={}
 Events={}
 function Events.messageCreate(message)
 	local settings,ignore={},{}
-	local bet=Database.Default.Settings.bet--default
+	local bet=database.Default.Settings.bet--default
 	local content,command,isServer,private=message.content,'',false,false
 	if message.author.bot==true then return end
 	if not message.guild then
 		private=true
 	else
-		settings=Database:Get(message).Settings
-		ignore=Database:Get(message).Ignore
+		settings=database:get(message).Settings
+		ignore=database:get(message).Ignore
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
@@ -104,7 +104,7 @@ end
 function Events.messageUpdate(message)
 	if message.author.bot==true then return end
 	if message.channel.isPrivate then return end
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	local filt,reason=filter(message)
 	if filt then
 		local reply=message:reply(fmt("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
@@ -119,7 +119,7 @@ function Events.messageUpdate(message)
 end
 function Events.messageDelete(message)
 	if message.channel.isPrivate then return end
-	local settings=Database:Get(message).Settings
+	local settings=database:get(message).Settings
 	if convertToBool(settings.log_deleted)==true then
 		local chan=resolveChannel(message.guild,settings.other_logs)
 		if chan then
@@ -145,7 +145,7 @@ function Events.guildCreate(guild)
 			if owner then
 				tx=tx..fmt('\n\nOwner name: %s\nOwner ID: %s',owner.name,owner.id)
 				local thetx=''
-				local bet=Database:Get(guild).Settings.bet
+				local bet=database:get(guild).Settings.bet
 				function append(ntx,fin)
 					fin=fin or false
 					thetx=thetx..ntx..(fin==false and'\n\n'or'')
@@ -160,7 +160,7 @@ function Events.guildCreate(guild)
 		end
 	end
 	if not _G.beta and API.Data.Stats.NG==true then
-		API.Stats:Post()
+		API.Stats:post()
 	end
 end
 function Events.guildDelete(guild)
@@ -176,7 +176,7 @@ function Events.guildDelete(guild)
 		end
 	end
 	if not _G.beta and API.Data.Stats.NG==true then
-		API.Stats:Post()
+		API.Stats:post()
 	end
 end
 function Events.Timing(data)--todo: bypass time mutes with global mute
@@ -227,7 +227,7 @@ function Events.ready()
 	Timing:on(Events.Timing)
 	client:setGame('Mention me for help!')
 	for guild in client.guilds:iter()do
-		Database:Get(guild)
+		database:get(guild)
 		Timing:load(guild)
 		local chan=guild.textChannels:get('370801361220141057')
 		if chan then
