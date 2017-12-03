@@ -309,7 +309,6 @@ function filter(message)
 	end
 end
 function getIdFromString(str)
-	p(str,type(str))
 	local fs=str:find('<')
 	local fe=str:find('>')
 	if not fs or not fe then return end
