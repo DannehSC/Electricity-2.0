@@ -21,13 +21,18 @@ Database.Default={
 		admin_roles={},
 		audit_log='false',
 		audit_log_chan='default---channel',
-		bet='elec!',
+		auto_bot_roles={},
+		auto_role='false',
+		auto_roles={},
 		banned_phrases={},
+		bet='elec!',
 		co_owner_roles={},
 		log_deleted='false',
-		mod_roles={},
 		mod_log='false',
 		mod_log_chan='default---channel',
+		mod_roles={},
+		notification='false',
+		notification_chan='default---channel',
 		other_logs='default---channel',
 		verify='false',
 		verify_role='Member',
@@ -96,6 +101,63 @@ s_pred={
 			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
+	auto_bot_roles=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
+		end
+		if r then
+			if checkForCopies(settings.auto_bot_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
+			table.insert(settings.auto_bot_roles,r.id)
+			Database:Update(guild)
+			return"Successfully added role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
+	auto_role=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			settings.audit_log=value
+			Database:Update(guild)
+			return"Set auto_role to "..value
+		end
+	end,
+	auto_roles=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local r
+		local this=getIdFromString(name)
+		if this then
+			r=guild:getRole(this)
+		else
+			r=guild.roles:find(function(r)
+				return r.name==name
+			end)
+		end
+		if r then
+			if checkForCopies(settings.auto_roles,r.id)then
+				return"Unsuccessful! Role already in list!"
+			end
+			table.insert(settings.auto_roles,r.id)
+			Database:Update(guild)
+			return"Successfully added role! ("..r.name..")"
+		else
+			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
 	co_owner_roles=function(name,message)
 		local guild=message.guild
 		local settings=Database:Get(guild).Settings
@@ -117,6 +179,17 @@ s_pred={
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
+	log_deleted=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			settings.audit_log=value
+			Database:Update(guild)
+			return"Set log_deleted to "..value
 		end
 	end,
 	mod_log=function(value,message)
@@ -171,6 +244,57 @@ s_pred={
 			return"Successfully added role! ("..r.name..")"
 		else
 			return"Unsuccessful! Role does not exist! ("..name..")"
+		end
+	end,
+	notification=function(value,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		if convertToBool(value)==nil then
+			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
+		else
+			settings.mod_log=value
+			Database:Update(guild)
+			return"Set notifications to "..value
+		end
+	end,
+	notification_chan=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
+		else
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
+		end
+		if c then
+			settings.mod_log_chan=c.name
+			Database:Update(guild)
+			return"Successfully set notification channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
+		end
+	end,
+	other_logs=function(name,message)
+		local guild=message.guild
+		local settings=Database:Get(guild).Settings
+		local c
+		local this=getIdFromString(name)
+		if this then
+			c=guild:getChannel(this)
+		else
+			c=guild.textChannels:find(function(c)
+				return c.name==name
+			end)
+		end
+		if c then
+			settings.mod_log_chan=c.name
+			Database:Update(guild)
+			return"Successfully set other logs channel! ("..c.mentionString..")"
+		else
+			return"Unsuccessful! Channel does not exist! ("..name..")"
 		end
 	end,
 	verify_role=function(name,message)
@@ -282,13 +406,13 @@ function Database:Get(guild,index)
 			print('GET',err)
 		else
 			local u
-			if data==nil or data==json.null or data[1]==nil then
+			if data==nil then
 				data=table.deepcopy(Database.Default)
 				data.id=id
 				Database.Cache[id]=data
 				u=true
 			else
-				local data=data[1]
+				--local data=data[1]
 				Database.Cache[id]=data
 				Database.Cache[id]['id']=id
 				for i,v in pairs(Database.Default)do

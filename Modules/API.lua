@@ -121,7 +121,7 @@ function API.Search:Bing(q)
 		return'No bing search key'
 	end
 	local request=query.urlencode(q)
-	local technical,data=API:GET('Bing',{request},{
+	local technical,data=API:Get('Bing',{request},{
 		{'Content-Type','application/json'},
 		{'Ocp-Apim-Subscription-Key',API.Data.Bing_Key}
 	})

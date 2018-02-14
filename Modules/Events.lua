@@ -136,6 +136,27 @@ function Events.messageDelete(message)
 		end
 	end
 end
+function Events.memberCreate(member)
+	local guild=member.guild
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.auto_role)==true then
+		if member.bot then
+			for i,v in pairs(settings.auto_bot_roles)do
+				local role=resolveRole(v)
+				if role then
+					member:addRole(role)
+				end
+			end
+		else
+			for i,v in pairs(settings.auto_roles)do
+				local role=resolveRole(v)
+				if role then
+					member:addRole(role)
+				end
+			end
+		end
+	end
+end
 function Events.guildCreate(guild)
 	for g in client.guilds:iter()do
 		local chan=g.textChannels:get('370801361220141057')

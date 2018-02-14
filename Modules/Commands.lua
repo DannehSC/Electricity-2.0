@@ -4,27 +4,77 @@
 		Emergency staff command shut off.
 		
 ]]
-local verification_codes={}
-Commands={}
+
+local verification_codes = {}
+Commands = {}
 function addCommand(name,desc,cmds,rank,multi_arg,server_only,switches,func)
-	local b,e,n,g=checkArgs({'string','string',{'table','string'},'number','boolean','boolean','boolean','function'},{name,desc,cmds,rank,multi_arg,server_only,switches,func})
-	--bool,expected,number,got
+	local b, e, n, g = checkArgs({'string', 'string', {'table', 'string'}, 'number', 'boolean', 'boolean', 'boolean', 'function'}, {name, desc, cmds, rank, multi_arg, server_only, switches, func})
+	--bool, expected, number, got
 	if not b then
 		error(string.format("Invalid argument #%s to addCommand, %s expected, got %s.",n,e,g))
 	end
-	Commands[name]={Name=name,Description=desc,Commands=(type(cmds)=='table'and cmds or{cmds}),Rank=rank,Multi=multi_arg,serverOnly=server_only,Switches=switches,Function=func}
+	Commands[name] = {
+		Name = name,
+		Description = desc,
+		Commands = (type(cmds) == 'table' and cmds or {cmds}),
+		Rank = rank,
+		Multi = multi_arg,
+		serverOnly = server_only,
+		Switches = switches,
+		Function = func
+	}
 end
-addCommand('Ping','Pings the bot.','ping',0,false,false,false,function(message,args)
-	sendMessage(message,embed(nil,"Pong!",colors.green),true)
+addCommand('Ping', 'Pings the bot.', 'ping', 0, false, false, false, function(message, args)
+	sendMessage(message, embed(nil, "Pong!", colors.green), true)
 end)
-addCommand('Beep','Beeps the bot.','beep',0,false,false,false,function(message,args)
-	sendMessage(message,embed(nil,"Boop!",colors.green),true)
+addCommand('Beep', 'Beeps the bot.', 'beep', 0, false, false, false, function(message,args)
+	sendMessage(message, embed(nil, "Boop!", colors.green), true)
 end)
-addCommand('Join','Sends a link to join the official Electricity guild!','join',0,false,false,false,function(message,args)
-	sendMessage(message.author,embed(nil,"[Invite](https://discordapp.com/invite/KCMxtK8)",colors.yellow),true)
+addCommand('Join', 'Sends a link to join the official Electricity guild!', 'join', 0, false, false, false, function(message,args)
+	sendMessage(message.author, embed(nil, "[Invite](https://discordapp.com/invite/KCMxtK8)", colors.yellow), true)
 end)
-addCommand('Join2','Sends a raw link to join the official Electricity guild!','join2',0,false,false,false,function(message,args)
-	sendMessage(message.author,"https://discordapp.com/invite/KCMxtK8")
+addCommand('Join2', 'Sends a raw link to join the official Electricity guild!','join2',0,false,false,false,function(message,args)
+	sendMessage(message.author, "https://discordapp.com/invite/KCMxtK8")
+end)
+addCommand('Rock Paper Scissors','The name says it all.','rps',0,false,false,false,function(message,args)
+	local rand=math.random(1,99)
+	local sel={
+		'rock','paper','scissors'
+	}
+	local txt={
+		['rock']=1,
+		['paper']=2,
+		['scissors']=3,
+	}
+	local opt,optn
+	local bwin
+	if rand>66 then
+		opt=sel[3]
+		optn=3
+	elseif rand>32 and rand<66 then
+		opt=sel[2]
+		optn=2
+	elseif rand<33 then
+		opt=sel[1]
+		optn=1
+	end
+	local n=txt[args[1]:lower()]
+	if n then
+		if optn==1 and n==3 then
+			bwin=true
+		elseif optn==3 and n==2 then
+			bwin=true
+		elseif optn==2 and n==1 then
+			bwin=true
+		end
+		if not bwin then
+			sendMessage(message,embed('Rock Paper Scissors',string.format("Your choice: **%s**\nBot choice: **%s**\nYou win!",args[1],opt),colors.yellow),true)
+		else
+			sendMessage(message,embed('Rock Paper Scissors',string.format("Your choice: **%s**\nBot choice: **%s**\nYou lose!",args[1],opt),colors.yellow),true)
+		end
+	else
+		sendMessage(message,embed('Rock Paper Scissors','Unknown option. Valid:\nRock, paper, scissors',colors.yellow),true)
+	end
 end)
 addCommand('About','Reads you info about the bot.',{'about','help'},0,false,false,false,function(message,args)
 	local tx=''
@@ -573,6 +623,7 @@ addCommand('Ban','Bans a member.|/r Reason /u Unban /l Ban list',{'ban','banish'
 	end
 end)
 addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l Settings list',{'settings','set'},3,false,true,true,function(message,args,switches)
+	local fmt=string.format
 	local guild=message.guild
 	local settings=Database:Get(message).Settings
 	if switches.s then
@@ -607,7 +658,20 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 			return sendMessage(message,"No setting found: "..switches.s)
 		end
 	elseif switches.l then
-		local this=''
+		--local this=''
+		local n,pages,out,ret=0,0,'',{}
+		local function addText(tx)
+			local n2=#tx
+			if n+n2>2047 then
+				table.insert(ret,out)
+				out=tx
+				n=n2
+				pages=pages+1
+			else
+				n=n+n2
+				out=out..tx
+			end
+		end
 		for i,v in orderedPairs(settings)do
 			local o=guild:getRole(v)or guild:getChannel(v)
 			if o then
@@ -617,9 +681,15 @@ addCommand('Settings','Sets the settings.|/s Setting /v Value /d Description /l 
 					v=o.mentionString
 				end
 			end
-			this=this..'**'..i..'** | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
+			local txt='**'..i..'** | '..(type(v)=='table'and'List setting'or tostring(v))..'\n'
+			--this=this..txt
+			addText(txt)
 		end
-		sendMessage(message,embed("Settings list",this),true)
+		pages=pages+1
+		table.insert(ret,out)
+		for i=1,#ret do
+			sendMessage(message,embed(fmt("Settings list [Page: %s/%s]",i,pages),ret[i],colors.yellow),true)
+		end
 	else
 		sendMessage(message,[[
 			How to use settings menu:
@@ -732,6 +802,9 @@ addCommand('Unignore','Unignores texts in a channel.','unignore',3,false,true,fa
 		Database:Update('Ignore',message)
 	end
 end)
+addCommand('Notify','Sends a notification to every guild with notifications enabled.','notify',4,false,false,false,function(message,args)
+	sendNotifications(args[1])
+end)
 addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,function(message,args)
 	local tx=''
 	local orig=print
@@ -755,7 +828,10 @@ addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,funct
 		tx=tx..txt
 		return txt
 	end
-	local toload=args[1]:gsub('```lua',''):gsub('```','')
+	if args[1]:sub(1,6):lower()=='```lua'then
+		args[1]=args[1]:sub(7,#args[1]-3)
+	end
+	local toload=args[1]--:gsub('```lua',''):gsub('```','')
 	local a,b=loadstring(toload,'Electricity 2.0')
 	if not a then
 		return sendMessage(message,"[S] Error! - "..b)

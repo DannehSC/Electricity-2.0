@@ -114,36 +114,36 @@ function checkArgs(types,vals)
 	return true,'',#vals
 end
 function getTimestamp()
-	return discordia.Date():toISO('T','Z')
+	return discordia.Date():toISO('T', 'Z')
 end
 function set(a,b,c)
 	if a then
-		b[c]=a
+		b[c] = a
 	end
 end
 function embed(title,desc,color,fields,other)
 	local emb={}
-	set(title,emb,'title')
-	set(desc,emb,'description')
-	set(color,emb,'color')
-	set(fields,emb,'fields')
+	set(title, emb, 'title')
+	set(desc, emb, 'description')
+	set(color, emb, 'color')
+	set(fields, emb, 'fields')
 	if other then
-		for i,v in pairs(other)do
-			set(v,emb,i)
+		for i,v in pairs(other) do
+			set(v, emb, i)
 		end
 	end
 	return emb
 end
 function sendMessage(obj,con,emb)
-	local doSend,orig=false,con
-	if type(con)=='string'then
-		if #con>1999 then
-			con=con:sub(1,1982)..'- | **CONTINUED**'
+	local doSend, orig= false, con
+	if type(con) == 'string' then
+		if #con > 1999 then
+			con = con:sub(1, 1982) .. '- | **CONTINUED**'
 			doSend=true
 		end
 	end
 	if emb then
-		con={embed=con}
+		con = {embed = con}
 	end
 	if obj.reply then
 		return obj:reply(con)
@@ -153,19 +153,23 @@ function sendMessage(obj,con,emb)
 		return obj:send(con)
 	end
 	if doSend then
-		return sendMessage(obj,'-'..orig:sub(1983))
+		return sendMessage(obj, '-' .. orig:sub(1983))
 	end
 	client:warning('Unable to sendMessage, object provided has none of the following.. [reply, sendMessage, send] And therefore sendMessage cannot complete.')
 end
 function sendTempMessage(tab,seconds)
 	coroutine.wrap(function()
-		local msg=sendMessage(unpack(tab))
-		timer.sleep(seconds*1000)
+		local msg = sendMessage(unpack(tab))
+		timer.sleep(seconds * 1000)
 		msg:delete()
 	end)()
 end
 function getRank(member,server)
-	if not member then client:warning('No member object. getRank()')return 0 end
+	if not member then
+		local data = debug.getinfo(2)
+		client:warning(string.format('No member object. getRank() (CALLING DATA: %s)',pprint.dump(data, nil, true)))
+		return 0
+	end
 	local guild=member.guild
 	local rank=0
 	if server then
@@ -401,7 +405,7 @@ function splitForDiscord()
 	table.insert(ret,out)
 	for i=1,#ret do
 		local v=ret[i]
-		ret[i]=embed(f('Commands [%s/%s]',i,pages),v,colors.yellow)
+		ret[i]=embed(f('Commands [Page: %s/%s]',i,pages),v,colors.yellow)
 	end
 	return ret
 end
@@ -639,15 +643,28 @@ function resolveGuild(guild)
 	return id,guild
 end
 function resolveChannel(guild,name)
+	local c
 	local this=getIdFromString(name)
 	if this then
 		c=guild:getChannel(this)
 	else
-		c=guild.textChannels:find(function(c)
-			return c.name==name
+		c=guild.textChannels:find(function(ch)
+			return ch.name==name
 		end)
 	end
 	return c
+end
+function resolveRole(guild,name)
+	local r
+	local this=getIdFromString(name)
+	if this then
+		r=guild:getRole(this)
+	else
+		r=guild.roles:find(function(ro)
+			return ro.name==name
+		end)
+	end
+	return r
 end
 function sendAudit(guild,content,embed)
 	local id,guild=resolveGuild(guild)
@@ -667,6 +684,21 @@ function sendModLog(guild,fields)
 		if chan then
 			sendMessage(chan,embed('ModLog',nil,colors.blue,fields),true)
 		end
+	end
+end
+function sendNotification(guild,txt)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.notification)==true then
+		local chan=resolveChannel(guild,settings.notification_chan)
+		if chan then
+			sendMessage(chan,embed('Notification from bot owner',txt,colors.blue),true)
+		end
+	end
+end
+function sendNotifications(txt)
+	for guild in client.guilds:iter()do
+		sendNotification(guild,txt)
 	end
 end
 function reasonEnforced(guild)
