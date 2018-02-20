@@ -313,6 +313,7 @@ function filter(message)
 	end
 end
 function getIdFromString(str)
+	if not str then return end
 	local fs=str:find('<')
 	local fe=str:find('>')
 	if not fs or not fe then return end
@@ -649,7 +650,7 @@ function resolveChannel(guild,name)
 		c=guild:getChannel(this)
 	else
 		c=guild.textChannels:find(function(ch)
-			return ch.name==name
+			return ch.name==name or ch.id==name
 		end)
 	end
 	return c
@@ -661,7 +662,7 @@ function resolveRole(guild,name)
 		r=guild:getRole(this)
 	else
 		r=guild.roles:find(function(ro)
-			return ro.name==name
+			return ro.name==name or ro.id==name
 		end)
 	end
 	return r
@@ -707,11 +708,4 @@ function reasonEnforced(guild)
 	if convertToBool(settings.mod_log)==true then
 		return true
 	end
-end
-function getCount(t)
-	local n=0
-	for i,v in pairs(t)do
-		n=n+1
-	end
-	return n
 end

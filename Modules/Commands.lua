@@ -379,7 +379,7 @@ addCommand('Remind','Remind you of <message>|/t Time /l List',{'remind','tellmel
 	if switches['l']then
 		local list=''
 		local timers=Timing:getTimers(message.author.id)
-		if getCount(timers)<1 then
+		if table.count(timers)<1 then
 			list='No timers present.'
 		end
 		for i,v in pairs(timers)do
@@ -416,6 +416,14 @@ addCommand('Remind','Remind you of <message>|/t Time /l List',{'remind','tellmel
 	Timing:newTimer(guild,secs,string.format('REMINDER||%s||%s||%s||%s||%s',guild.id,message.channel.id,member.id,time,tx))
 	sendMessage(message,embed('Reminder','Set new reminder for '..timeBetween(secs)..' from now.',colors.blue),true)
 end)
+addCommand('Waffles', 'Evil beware', {'waffle', 'waffles', 'eatmorewaffles'}, 0, false, false, false, function(message, args, switches)
+	local chance = math.random(1, 10000)
+	if chance > 5000 then
+		sendMessage(message, "https://www.youtube.com/watch?v=Q3dtYeH6Wmk")
+	else
+		sendMessage(message, "https://i.imgur.com/fsrBsId.gif")
+	end
+end)
 addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute/unmute /t Time',{'mute','silence','shutupandtakemymoney'},1,false,true,true,function(message,args,switches)
 	coroutine.wrap(function()
 		local guild=message.guild
@@ -433,6 +441,35 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 		end
 		if switches['t']and not switches['u']then
 			secs=toSeconds(parseTime(switches['t']))
+		end
+		if switches['tl']then
+			local list=''
+			local timers=Timing:getTimers(guild.id)
+			if table.count(timers)<1 then
+				list='No muted people present.'
+			end
+			for i,v in pairs(timers)do
+				local tx=''
+				local spl=string.split(v.data,'||')
+				local typ,chan,time,time_left=spl[1],'','',''
+				if typ=='UNMUTE'then
+					guil=spl[2]
+					if guild.id~=guil then return end
+					chan=spl[3]
+					time=timeBetween(toSeconds(parseTime(spl[5])))
+					if spl[5]=='nil'then time='<UNKNOWN?>'end
+					time_left=timeBetween(v.endTime-os.time())
+					local chan=(spl[3]=='all' and 'ALL' or guild:getChannel(chan) or {id=chan,mentionString='<NOT FOUND'})
+					tx=tx..string.format('**Type: %s**\nChannel: %s\nTime: %s\nTime left: %s',typ,chan.mentionString,time,time_left)
+				else
+					tx=tx..typ
+				end
+				list=list..tx..'\n'
+			end
+			if #list>2000 then
+				list='Too many muted members to list.'
+			end
+			return sendMessage(message,embed('List',list,colors.bright_blue),true)
 		end
 		local u,bpos=message.mentionedUsers:iter()(),getHighestRole(bm)
 		if u then
@@ -465,7 +502,7 @@ addCommand('Mute','Mutes a member.|/u Unmute /g Global mute/unmute /v Voice mute
 								mute(member,message.channel)
 							end
 							if secs then
-								Timing:newTimer(guild,secs,string.format('UNMUTE||%s||%s||%s',guild.id,(global and'all'or message.channel.id),member.id))
+								Timing:newTimer(guild,secs,string.format('UNMUTE||%s||%s||%s||%s',guild.id,(global and'all'or message.channel.id),member.id,switches['t']))
 							end
 							sendMessage(message,(global and"Globally muted "or"Muted ")..member.mentionString..(secs and' | For '..switches['t']or''))
 						end

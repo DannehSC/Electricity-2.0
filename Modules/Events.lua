@@ -142,14 +142,16 @@ function Events.memberCreate(member)
 	if convertToBool(settings.auto_role)==true then
 		if member.bot then
 			for i,v in pairs(settings.auto_bot_roles)do
-				local role=resolveRole(v)
+				local role=resolveRole(guild,v)
 				if role then
 					member:addRole(role)
+				else
+					client:warning(string.format('Role not found. Role id: %s | Guild id: %s',v,guild.id))
 				end
 			end
 		else
 			for i,v in pairs(settings.auto_roles)do
-				local role=resolveRole(v)
+				local role=resolveRole(guild,v)
 				if role then
 					member:addRole(role)
 				end

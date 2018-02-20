@@ -3,13 +3,6 @@ local data=options.Database
 local rethink=require('luvit-reql')
 local conn=rethink.connect(data)
 local ts,fmt=tostring,string.format
-local function getTableCount(t)
-	local x=0
-	for i,v in pairs(t)do
-		x=x+1
-	end
-	return x
-end
 Database={
 	_raw_database=rethink,
 	_conn=conn,
@@ -130,7 +123,7 @@ s_pred={
 		if convertToBool(value)==nil then
 			return"Invalid value! Must be 'true' or 'yes' for yes. Must be 'false' or 'no' for no."
 		else
-			settings.audit_log=value
+			settings.auto_role=value
 			Database:Update(guild)
 			return"Set auto_role to "..value
 		end
