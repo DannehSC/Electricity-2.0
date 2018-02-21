@@ -6,6 +6,7 @@
 ]]
 
 local verification_codes = {}
+feedbackCooldowns = {}
 Commands = {}
 function addCommand(name,desc,cmds,rank,multi_arg,server_only,switches,func)
 	local b, e, n, g = checkArgs({'string', 'string', {'table', 'string'}, 'number', 'boolean', 'boolean', 'boolean', 'function'}, {name, desc, cmds, rank, multi_arg, server_only, switches, func})
@@ -27,14 +28,37 @@ end
 addCommand('Ping', 'Pings the bot.', 'ping', 0, false, false, false, function(message, args)
 	sendMessage(message, embed(nil, "Pong!", colors.green), true)
 end)
-addCommand('Beep', 'Beeps the bot.', 'beep', 0, false, false, false, function(message,args)
+addCommand('Beep', 'Beeps the bot.', 'beep', 0, false, false, false, function(message, args)
 	sendMessage(message, embed(nil, "Boop!", colors.green), true)
 end)
-addCommand('Join', 'Sends a link to join the official Electricity guild!', 'join', 0, false, false, false, function(message,args)
+addCommand('Join', 'Sends a link to join the official Electricity guild!', 'join', 0, false, false, false, function(message, args)
 	sendMessage(message.author, embed(nil, "[Invite](https://discordapp.com/invite/KCMxtK8)", colors.yellow), true)
 end)
-addCommand('Join2', 'Sends a raw link to join the official Electricity guild!','join2',0,false,false,false,function(message,args)
+addCommand('Join2', 'Sends a raw link to join the official Electricity guild!', 'join2', 0, false, false, false, function(message, args)
 	sendMessage(message.author, "https://discordapp.com/invite/KCMxtK8")
+end)
+addCommand('Feedback', 'Send feedback to the Electricity staff.', {'feedback','fb'}, 0, false, false, false, function(message, args)
+	local guildId = '284895856031956992'
+	local channelId = '415731489926283267'
+	local author, oGuild, oChannel = message.author, message.guild, message.channel
+	if feedbackCooldowns[author.id] then
+		return sendMessage(message, embed('FAILED', 'You may not submit feedback. You are still on cooldown.', colors.red), true)
+	end
+	if Database._conn.reql().db('electricity').table('fbbans').get(author.id).run() then
+		return sendMessage(message, embed('FAILED', 'You may not submit feedback. You are banned from submitting feedback. You may appeal this ban in the Electricity official server.', colors.red), true)
+	end
+	sendMessage(client:getGuild(guildId):getChannel(channelId),
+		embed('Feedback [' .. author.username .. '#' .. author.discriminator .. ']', "**__FEEDBACK:__** " .. args[1], colors.bright_blue, {
+			{name = 'Author ID', value = author.id, inline = true},
+			{name = 'Guild ID', value = oGuild.id, inline = true},
+			{name = 'Channel ID', value = oChannel.id, inline = true},
+		}),
+	true)
+	sendMessage(message, embed('SUCCESS', 'Sent feedback. You are now on cooldown for 1 hour.', colors.green), true)
+	feedbackCooldowns[author.id] = true
+	timer.setTimeout(3600000, function()
+		feedbackCooldowns[author.id] = nil
+	end)
 end)
 addCommand('Rock Paper Scissors','The name says it all.','rps',0,false,false,false,function(message,args)
 	local rand=math.random(1,99)
@@ -841,6 +865,20 @@ addCommand('Unignore','Unignores texts in a channel.','unignore',3,false,true,fa
 end)
 addCommand('Notify','Sends a notification to every guild with notifications enabled.','notify',4,false,false,false,function(message,args)
 	sendNotifications(args[1])
+end)
+addCommand('FeedbackBan', 'Read the name', {'feedbackban', 'fbban'}, 4, false, false, true, function(message, args)
+	local id = args[1]
+	local user = client:getUser(id)
+	local msg = '%s has been banned from submitting feedback.'
+	Database._conn.reql().db('electricity').table('fbbans').insert({id = id}).run()
+	sendMessage(message, msg:format(user and user.name or id))
+end)
+addCommand('FeedbackUnban', 'Read the name', {'feedbackunban', 'fbuban'}, 4, false, false, true, function(message, args)
+	local id = args[1]
+	local user = client:getUser(id)
+	local msg = '%s has been unbanned from submitting feedback.'
+	Database._conn.reql().db('electricity').table('fbbans').get(id).delete().run()
+	sendMessage(message, msg:format(user and user.name or id))
 end)
 addCommand('Load','Loads code.',{'load','eval','exec'},4,false,false,false,function(message,args)
 	local tx=''
