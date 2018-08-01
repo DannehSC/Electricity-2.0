@@ -8,6 +8,7 @@
 local verification_codes = {}
 feedbackCooldowns = {}
 Commands = {}
+
 function addCommand(name,desc,cmds,rank,multi_arg,server_only,switches,func)
 	local b, e, n, g = checkArgs({'string', 'string', {'table', 'string'}, 'number', 'boolean', 'boolean', 'boolean', 'function'}, {name, desc, cmds, rank, multi_arg, server_only, switches, func})
 	--bool, expected, number, got
@@ -200,25 +201,13 @@ addCommand('Commands','Grabs the list of commands.',{'cmds','commands'},0,false,
 end)
 addCommand('Calculate','Calculates math.',{'calc','calculate'},0,false,false,false,function(message,args)
 	if #args[1]<1 then return sendMessage(message,embed(nil,"You must specify what to calculate.",colors.red),true)end
-	local function sm(t)
-		sendMessage(message,embed(nil,t,colors.bright_blue),true)
-	end
-	local f,n=loadstring("return "..args[1])
-	if not f then
-		sm'Cannot calculate'
+	local result;
+	local status, msg = pcall(function() result = HMath.ProcessEquation(tostring(args[1])); end);
+	if not status then 
+		sendMessage('Cannot calculate.');
 	else
-		setfenv(f,{math=table.copy(math)})
-		local a,b=pcall(f)
-		if not a then
-			sm'Cannot calculate'
-		else
-			if not tonumber(b)then
-				sm'Cannot Calculate'
-			else
-				sm(tostring(b))
-			end
-		end
-	end
+		sendMessage(tostring(result));
+	end;
 end)
 addCommand('LMGTFY','Let me google that for you','lmgtfy',0,false,false,false,function(message,args)
 	sendMessage(message,("http://lmgtfy.com/?q=%s"):format(query.urlencode(args[1])))
