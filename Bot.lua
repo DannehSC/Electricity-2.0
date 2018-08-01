@@ -53,6 +53,7 @@ end
 coroutine.wrap(function()
 	loadModule('Functions')
 	loadModule('Database')
+	loadModule('HMath')
 	loadModule('Commands')
 	loadModule('Events')
 	loadModule('Timed')
