@@ -204,9 +204,9 @@ addCommand('Calculate','Calculates math.',{'calc','calculate'},0,false,false,fal
 	local result;
 	local status, msg = pcall(function() result = HMath.ProcessEquation(tostring(args[1])); end);
 	if not status then 
-		sendMessage('Cannot calculate.');
+		sendMessage(message, 'Cannot calculate.');
 	else
-		sendMessage(tostring(result));
+		sendMessage(message, tostring(result));
 	end;
 end)
 addCommand('LMGTFY','Let me google that for you','lmgtfy',0,false,false,false,function(message,args)
