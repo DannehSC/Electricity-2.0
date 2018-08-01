@@ -9,8 +9,6 @@ local verification_codes = {}
 feedbackCooldowns = {}
 Commands = {}
 
-local HMath = require 'modules.MathParser';
-
 function addCommand(name,desc,cmds,rank,multi_arg,server_only,switches,func)
 	local b, e, n, g = checkArgs({'string', 'string', {'table', 'string'}, 'number', 'boolean', 'boolean', 'boolean', 'function'}, {name, desc, cmds, rank, multi_arg, server_only, switches, func})
 	--bool, expected, number, got
