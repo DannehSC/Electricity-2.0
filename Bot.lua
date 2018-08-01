@@ -9,6 +9,8 @@ uptime = discordia.Stopwatch()
 
 discordia.extensions()
 
+HMath = require('./Modules/MathParser.lua')
+
 function FFB(t) --format for beta
 	if beta == true then
 		return t..'_B'
@@ -53,7 +55,6 @@ end
 coroutine.wrap(function()
 	loadModule('Functions')
 	loadModule('Database')
-	loadModule('HMath')
 	loadModule('Commands')
 	loadModule('Events')
 	loadModule('Timed')
