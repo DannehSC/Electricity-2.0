@@ -21,7 +21,9 @@ emitter:on('quit', function()
 	connect()
 end)
 
-connect()
+function database:run()
+	connect()
+end
 
 database.default = {
 	Settings = {
@@ -401,35 +403,44 @@ descriptions = {
 	verify_role = 'Role given to a member when verified using the verification system.',
 }
 
-local function getDBQuery()
+local function getDBQuery(tab)
 	if not database._conn then
 		return false, 'FAILED, no connection found. [GETDBQUERY]'
 	end
-	return database._conn.reql().db(rData.db).table(rData.table)
+	return database._conn.reql().db(rData.db).table(tab or rData.table)
+end
+
+function database:otherGet(tab, val)
+	local query, text = getDBQuery(tab)
+	if query then
+		return query.get(ts(val)).run()
+	else
+		return nil, text
+	end
 end
 
 function database:get(id)
-	local id, guild = resolveGuild(id)
+	local id, guild = resolver.guild(id)
 	local function doQuery()
 		local query, text = getDBQuery()
 		if query then
 			local u
 			local data = query.get(ts(id)).run()
 			if data == nil then
-				local data = table.deepcopy(database.default)
+				local data = table.deepcopy(self.default)
 				data[id] = id
 				if rData.cache then
-					database.cache[id] = data
+					self.cache[id] = data
 				end
 				u = true
 			else
-				for i,v in pairs(database.default) do
+				for i,v in pairs(self.default) do
 					if not data[i] then
 						data[i] = v
 						u = true
 					end
 				end
-				for i,v in pairs(database.default.Settings) do
+				for i,v in pairs(self.default.Settings) do
 					if not data.Settings[i] then
 						data.Settings[i] = v
 						u = true
@@ -437,16 +448,16 @@ function database:get(id)
 				end
 			end
 			if u then
-				database:Update(id)
+				self:update(id)
 			end
 			return data
 		else
-			return database.default, text
+			return self.default, text
 		end
 	end
 	if rData.cache then
-		if database.cache[id] then
-			return database.cache[id]
+		if self.cache[id] then
+			return self.cache[id]
 		else
 			return doQuery()
 		end
@@ -456,10 +467,10 @@ function database:get(id)
 end
 
 function database:getCached(id)
-	local id, guild = resolveGuild(id)
+	local id, guild = resolver.guild(id)
 	if rData.cache then
-		if database.cache[id] then
-			return database.cache[id]
+		if self.cache[id] then
+			return self.cache[id]
 		else
 			return
 		end
@@ -469,21 +480,21 @@ function database:getCached(id)
 end
 
 function database:rawGet(id)
-	local id, guild = resolveGuild(id)
+	local id, guild = resolver.guild(id)
 	local query, text = getDBQuery()
 	if query then
 		local u
 		local data = query.get(ts(id)).run()
 		if data == nil then
-			return table.deepcopy(database.default)
+			return table.deepcopy(self.default)
 		else
-			for i,v in pairs(database.default) do
+			for i,v in pairs(self.default) do
 				if not data[i] then
 					data[i] = v
 					u = true
 				end
 			end
-			for i,v in pairs(database.default.Settings) do
+			for i,v in pairs(self.default.Settings) do
 				if not data.Settings[i] then
 					data.Settings[i] = v
 				end
@@ -496,9 +507,9 @@ function database:rawGet(id)
 end
 
 function database:update(id)
-	local id, guild = resolveGuild(id)
+	local id, guild = resolver.guild(id)
 end
 
 function database:delete(id)
-	local id, guild = resolveGuild(id)
+	local id, guild = resolver.guild(id)
 end

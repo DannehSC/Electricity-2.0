@@ -1,32 +1,35 @@
-local http = require('coro-http')
-local reql = require('luvit-reql')
-local discordia = require('discordia')
-
 local framework = {}
-
-function framework.registerModule(name, mod)
-	_G[name] = mod
-end
-
-framework.registerModule('http', http)
-framework.registerModule('reql', reql)
-framework.registerModule('discordia', discordia)
 
 function framework.loadModule(name, file)
 	local bool, mod = pcall(require, file)
 	if bool then
-		framework.registerModule(name, mod)
+		_G[name] = mod
 	else
 		error('Unable to load module. [' .. file .. '] Reason: ' .. mod)
 	end
 end
 
-function framework.run()
+framework.loadModule('http', 'http')
+framework.loadModule('timer', 'timer')
+framework.loadModule('reql', 'luvit-reql')
+framework.loadModule('discordia', 'discordia')
+
+framework.events = {}
+
+function framework.events.messageCreated(message)
+	
+end
+
+function framework:run()
+	database:run()
 	stats:prepare()
+	discordia:on('messageCreated', self.events.messageCreated)
 	discordia:on('ready', function()
-		event:fire('ready')
 		timer:init()
 		stats:init()
+		for g in client.guilds do
+			initGuild(g)
+		end
 	end)
 	discordia:run(config.token)
 end

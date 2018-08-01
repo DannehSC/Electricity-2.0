@@ -19,4 +19,4 @@ for i = 1, #order do
 	framework.loadModule(mod, './modules/' .. mod .. '.lua')
 end
 
-framework.run()
+framework:run()

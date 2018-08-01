@@ -1,5 +1,3 @@
-local timer = require('timer')
-
 local second = 1000
 local minute = second * 60
 local hour   = minute * 60
@@ -10,7 +8,7 @@ local stats = {
 }
 
 function stats:update()
-
+	
 end
 
 function stats:prepare()
