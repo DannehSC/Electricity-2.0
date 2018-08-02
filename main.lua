@@ -1,5 +1,4 @@
 local config = require('./options.lua')
-local logger = require('./modules/logger.lua')
 local framework = require('./modules/framework.lua')
 
 _G.config = config
@@ -8,7 +7,6 @@ local order = {
 	'logger',
 	'functions',
 	'database',
-	'events',
 	'timer',
 	'stats',
 	'commands',

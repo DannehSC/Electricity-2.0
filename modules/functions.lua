@@ -76,3 +76,15 @@ function resolver:role(guild, name)
 		return nil, 'Role could not be resolved.'
 	end
 end
+
+idMaker = {}
+
+function idMaker:generate()
+	local id = ''
+	local rands = {
+		ssl.base64(ssl.random(6)),
+		ssl.base64(ssl.random(4)),
+		ssl.base64(ssl.random(8))
+	}
+	return rands[1] .. '-' .. rands[2] .. '-' .. rands[3]
+end

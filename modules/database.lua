@@ -420,7 +420,8 @@ function database:otherGet(tab, val)
 end
 
 function database:get(id)
-	local id, guild = resolver.guild(id)
+	local guild, id = resolver:guild(id)
+	if not guild then return id end
 	local function doQuery()
 		local query, text = getDBQuery()
 		if query then
@@ -467,7 +468,8 @@ function database:get(id)
 end
 
 function database:getCached(id)
-	local id, guild = resolver.guild(id)
+	local guild, id = resolver:guild(id)
+	if not guild then return id end
 	if rData.cache then
 		if self.cache[id] then
 			return self.cache[id]
@@ -480,7 +482,8 @@ function database:getCached(id)
 end
 
 function database:rawGet(id)
-	local id, guild = resolver.guild(id)
+	local guild, id = resolver:guild(id)
+	if not guild then return id end
 	local query, text = getDBQuery()
 	if query then
 		local u
@@ -506,10 +509,40 @@ function database:rawGet(id)
 	end
 end
 
-function database:update(id)
-	local id, guild = resolver.guild(id)
+function database:update(id, data)
+	local guild, id = resolver:guild(id)
+	if not guild then return id end
+	if rData.cache then
+		if self.cache[id] then
+			if not self.cache[id].id then
+				self.cache[id].id = id
+			end
+			local data, err, edata = getDBQuery().inOrRe(self.cache[id]).run()
+			if err then
+				print('DB UPDATE ERR -', tostring(err))
+				p(edata)
+			end
+			return data, err, edata
+		else
+			return nil, "Fetch data before trying to update it."
+		end
+	else
+		if not data then return nil, 'No data provided. [CACHE DISABLED]' end
+		if not data[id] then
+			data[id] = id
+		end
+		local data, err, edata = getDBQuery().inOrRe(data).run()
+		if err then
+			print('DB UPDATE ERR -', tostring(err))
+			p(edata)
+		end
+		return data, err, edata
+	end
+	return nil, 'Something went wrong. [database:update()]'
 end
 
 function database:delete(id)
-	local id, guild = resolver.guild(id)
+	local guild, id = resolver:guild(id)
+	if not guild then return id end
+	
 end
