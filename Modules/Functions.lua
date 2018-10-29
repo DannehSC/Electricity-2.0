@@ -2,10 +2,13 @@
 operatingsystem=require('ffi').os
 color=discordia.Color.fromRGB
 mutex=discordia.Mutex()
+hparser=require('html-parser')
+pprint=require("pretty-print")
 query=require("querystring")
 enclib=require("encrypter")
 http=require("coro-http")
 timer=require("timer")
+ssl=require('openssl')
 json=require("json")
 uv=require("uv")
 colors={
@@ -110,29 +113,37 @@ function checkArgs(types,vals)
 	end
 	return true,'',#vals
 end
+function getTimestamp()
+	return discordia.Date():toISO('T', 'Z')
+end
 function set(a,b,c)
 	if a then
-		b[c]=a
+		b[c] = a
 	end
 end
-function embed(title,desc,color,fields)
+function embed(title,desc,color,fields,other)
 	local emb={}
-	set(title,emb,'title')
-	set(desc,emb,'description')
-	set(color,emb,'color')
-	set(fields,emb,'fields')
+	set(title, emb, 'title')
+	set(desc, emb, 'description')
+	set(color, emb, 'color')
+	set(fields, emb, 'fields')
+	if other then
+		for i,v in pairs(other) do
+			set(v, emb, i)
+		end
+	end
 	return emb
 end
 function sendMessage(obj,con,emb)
-	local doSend,orig=false,con
-	if type(con)=='string'then
-		if #con>1999 then
-			con=con:sub(1,1982)..'- | **CONTINUED**'
+	local doSend, orig= false, con
+	if type(con) == 'string' then
+		if #con > 1999 then
+			con = con:sub(1, 1982) .. '- | **CONTINUED**'
 			doSend=true
 		end
 	end
 	if emb then
-		con={embed=con}
+		con = {embed = con}
 	end
 	if obj.reply then
 		return obj:reply(con)
@@ -142,18 +153,24 @@ function sendMessage(obj,con,emb)
 		return obj:send(con)
 	end
 	if doSend then
-		sendMessage(obj,'-'..orig:sub(1983))
+		return sendMessage(obj, '-' .. orig:sub(1983))
 	end
+	client:warning('Unable to sendMessage, object provided has none of the following.. [reply, sendMessage, send] And therefore sendMessage cannot complete.')
 end
 function sendTempMessage(tab,seconds)
 	coroutine.wrap(function()
-		local msg=sendMessage(unpack(tab))
-		timer.sleep(seconds*1000)
+		local msg = sendMessage(unpack(tab))
+		timer.sleep(seconds * 1000)
 		msg:delete()
 	end)()
 end
 function getRank(member,server)
-	if not member then client:warning('No member object. getRank()')return 0 end
+	if not member then
+		local data = debug.getinfo(2)
+		client:warning(string.format('No member object. getRank() (CALLING DATA: %s)',pprint.dump(data, nil, true)))
+		return 0
+	end
+	local guild=member.guild
 	local rank=0
 	if server then
 		local settings=Database:Get(member.guild).Settings
@@ -181,7 +198,8 @@ function getRank(member,server)
 				end
 			end
 		end
-		if member.id==member.guild.owner.id then
+		local owner=member.guild:getMember(member.guild.ownerId)
+		if member.id==owner.id then
 			rank=3
 		end
 	end
@@ -230,7 +248,7 @@ function getBotMember(guild)
 end
 function getHighestRole(member)
 	local h=0
-	if member.guild.owner.id==member.id then h=99999 end
+	if member.guild.ownerId==member.id then h=99999 end
 	if member.id==client.owner.id then h=99999999999 end
 	for role in member.roles:iter()do
 		if role.position>h then
@@ -295,6 +313,7 @@ function filter(message)
 	end
 end
 function getIdFromString(str)
+	if not str then return end
 	local fs=str:find('<')
 	local fe=str:find('>')
 	if not fs or not fe then return end
@@ -302,11 +321,11 @@ function getIdFromString(str)
 end
 function mute(member,channel)
 	local overwrite=channel:getPermissionOverwriteFor(member)
-	overwrite:denyPermissions('sendMessages')
+	return overwrite:denyPermissions('sendMessages')
 end
 function unmute(member,channel)
 	local overwrite=channel:getPermissionOverwriteFor(member)
-	overwrite:clearPermissions('sendMessages')
+	return overwrite:clearPermissions('sendMessages')
 end
 function voiceKick(member)
 	local guild,voice=member.guild,member.voiceChannel
@@ -319,6 +338,77 @@ function voiceKick(member)
 	else
 		return"No voice channel to kick them from!"
 	end
+end
+function splitForDiscord()
+	local f=string.format
+	local r0t,r1t,r2t,r3t,r4t='__**Rank 0 (User)**__\n','__**Rank 1 (Moderator)**__\n','__**Rank 2 (Administrator)**__\n','__**Rank 3 (Server Owner)**__\n','__**Rank 4 (Bot Creator)**__\n'
+	local r0,r1,r2,r3,r4={},{},{},{},{}
+	local n,pages,out,ret=0,0,'',{}
+	local function makeDoc(commandTable)
+		local text='**%s**\n*Description:* %s\n*Commands:* %s\n*Rank:* %s\n*Switches:* %s\n*Server only:* %s\n'
+		local sep=(commandTable.Description:find('|')or #commandTable.Description+1)
+		local desc,switches=commandTable.Description:sub(1,sep-1),commandTable.Description:sub(sep+1)
+		if #switches==0 then
+			switches='None'
+		end
+		return text:format(commandTable.Name,desc,table.concat(commandTable.Commands,','),tostring(commandTable.Rank),switches,(not commandTable.serverOnly and'False'or'True'))
+	end
+	local function addText(tx)
+		local n2=#tx
+		if n+n2>2047 then
+			table.insert(ret,out)
+			out=tx
+			n=n2
+			pages=pages+1
+		else
+			n=n+n2
+			out=out..tx
+		end
+	end
+	for i,v in orderedPairs(Commands)do
+		if v.Rank==0 then
+			table.insert(r0,v)
+		end
+		if v.Rank==1 then
+			table.insert(r1,v)
+		end
+		if v.Rank==2 then
+			table.insert(r2,v)
+		end
+		if v.Rank==3 then
+			table.insert(r3,v)
+		end
+		if v.Rank==4 then
+			table.insert(r4,v)
+		end
+	end
+	addText(r0t)
+	for i,v in pairs(r0)do
+		addText(makeDoc(v))
+	end
+	addText(r1t)
+	for i,v in pairs(r1)do
+		addText(makeDoc(v))
+	end
+	addText(r2t)
+	for i,v in pairs(r2)do
+		addText(makeDoc(v))
+	end
+	addText(r3t)
+	for i,v in pairs(r3)do
+		addText(makeDoc(v))
+	end
+	addText(r4t)
+	for i,v in pairs(r4)do
+		addText(makeDoc(v))
+	end
+	pages=pages+1
+	table.insert(ret,out)
+	for i=1,#ret do
+		local v=ret[i]
+		ret[i]=embed(f('Commands [Page: %s/%s]',i,pages),v,colors.yellow)
+	end
+	return ret
 end
 function commandDocsDump()
 	local r0t,r1t,r2t,r3t,r4t='# Rank 0 (User)\n\n','# Rank 1 (Moderator)\n\n','# Rank 2 (Administrator)\n\n','# Rank 3 (Server Owner)\n\n','# Rank 4 (Bot Creator)\n\n'
@@ -355,7 +445,10 @@ function commandDocsDump()
 			asdf[i]=asdf[i]..makeDoc(vv)..'\n'
 		end
 	end
-	print(('%s\n%s\n%s\n%s\n%s'):format(asdf[1],asdf[2],asdf[3],asdf[4],asdf[5]))
+	local a=io.open('docs.txt','w')
+	local b=a:write(('%s\n%s\n%s\n%s\n%s'):format(asdf[1],asdf[2],asdf[3],asdf[4],asdf[5]))
+	local c=b:flush()
+	--local d=c:close()
 end
 function split(msg,bet)
 	local f=msg:find(bet)
@@ -452,5 +545,167 @@ function checkForCopies(tab,value)
 		if v==value then
 			return true
 		end
+	end
+end
+function parseTime(message)
+	local t={}
+	for i,v in pairs(string.split(message,' '))do
+		for de,str in v:gmatch('(%d?%d?%d?%d?%d)(%S?%S?%S?%S)')do
+			local s=str:lower()
+			if s=='y'or s:sub(1,4)=='year'then
+				t.years=de
+			elseif s=='mo'or s:sub(1,5)=='month'then
+				t.months=de
+			elseif s=='w'or s:sub(1,4)=='week'then
+				t.weeks=de
+			elseif s=='d'or s:sub(1,3)=='day'then
+				t.days=de
+			elseif s=='h'or s:sub(1,4)=='hour'then
+				t.hours=de
+			elseif s=='m'or s=='mi'or s:sub(1,6)=='minute'then
+				t.minutes=de
+			elseif s=='s'or s:sub(1,6)=='second'then
+				t.seconds=de
+			end
+		end
+	end
+	return t
+end
+function toSeconds(tim)
+	if not type(tim)=='table'then return 0 end
+	local s=0
+	local secs={
+		years=31536000,
+		months=60*60*24*31,
+		weeks=60*60*24*7,
+		days=60*60*24,
+		hours=60*60,
+		minutes=60,
+		seconds=1,
+	}
+	for typ,val in pairs(tim)do	
+		s=s+(secs[typ]*val)
+	end
+	return s
+end
+function fromSeconds(tim)
+	local secs={
+		years=31536000,
+		months=60*60*24*31,
+		weeks=60*60*24*7,
+		days=60*60*24,
+		hours=60*60,
+		minutes=60,
+		seconds=1,
+	}
+	local ret={
+		years=0,
+		months=0,
+		weeks=0,
+		days=0,
+		hours=0,
+		minutes=0,
+		seconds=0,
+	}
+	for typ,val in pairs(secs)do
+		if tim>=tonumber(val)then
+			repeat
+				tim=tim-tonumber(val)
+				ret[typ]=ret[typ]+1
+			until tim<tonumber(val)
+		end
+	end
+	return ret
+end
+function timeBetween(tim)
+	local dat,str=fromSeconds(tim),''
+	for i,v in pairs(dat)do
+		if v>0 then
+			local s=tostring(i)
+			str=str..', '..tostring(v)..' '..(v==1 and s:sub(1,#s-1)or s)
+		end
+	end
+	return str:sub(3)
+end
+function resolveGuild(guild)
+	local ts=tostring
+	if not guild then error"No ID/Guild/Message provided"end
+	local id
+	if type(guild)=='table'then
+		if guild['guild']then
+			id=ts(guild.guild.id)
+		else
+			id=ts(guild.id)
+		end
+	else
+		id=ts(guild)
+		guild=client:getGuild(id)
+	end
+	return id,guild
+end
+function resolveChannel(guild,name)
+	local c
+	local this=getIdFromString(name)
+	if this then
+		c=guild:getChannel(this)
+	else
+		c=guild.textChannels:find(function(ch)
+			return ch.name==name or ch.id==name
+		end)
+	end
+	return c
+end
+function resolveRole(guild,name)
+	local r
+	local this=getIdFromString(name)
+	if this then
+		r=guild:getRole(this)
+	else
+		r=guild.roles:find(function(ro)
+			return ro.name==name or ro.id==name
+		end)
+	end
+	return r
+end
+function sendAudit(guild,content,embed)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.audit_log)==true then
+		local chan=resolveChannel(guild,settings.audit_log_chan)
+		if chan then
+			sendMessage(chan,content,embed)
+		end
+	end
+end
+function sendModLog(guild,fields)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.mod_log)==true then
+		local chan=resolveChannel(guild,settings.mod_log_chan)
+		if chan then
+			sendMessage(chan,embed('ModLog',nil,colors.blue,fields),true)
+		end
+	end
+end
+function sendNotification(guild,txt)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.notification)==true then
+		local chan=resolveChannel(guild,settings.notification_chan)
+		if chan then
+			sendMessage(chan,embed('Notification from bot owner',txt,colors.blue),true)
+		end
+	end
+end
+function sendNotifications(txt)
+	for guild in client.guilds:iter()do
+		sendNotification(guild,txt)
+	end
+end
+function reasonEnforced(guild)
+	local id,guild=resolveGuild(guild)
+	local settings=Database:Get(guild).Settings
+	if convertToBool(settings.mod_log)==true then
+		return true
 	end
 end
