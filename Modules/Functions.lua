@@ -199,7 +199,7 @@ function getRank(member,server)
 			end
 		end
 		local owner=member.guild:getMember(member.guild.ownerId)
-		if member.id==owner.id then
+		if owner and member.id==owner.id then
 			rank=3
 		end
 	end
