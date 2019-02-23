@@ -2,9 +2,9 @@ local second = 1000
 local minute = second * 60
 local hour   = minute * 60
 
-local stats = {
-	data = config.API,
-	conf = config.API.stats,
+stats = {
+	data = options.API,
+	conf = options.API.stats,
 }
 
 function stats:update()
@@ -13,7 +13,7 @@ end
 
 function stats:prepare()
 	if self.conf.NG then
-		discordia:on('guildCreated', function()
+		client:on('guildCreated', function()
 			stats:update()
 		end)
 	end
@@ -29,5 +29,3 @@ end
 function stats:init()
 	
 end
-
-return stats

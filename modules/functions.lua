@@ -88,3 +88,7 @@ function idMaker:generate()
 	}
 	return rands[1] .. '-' .. rands[2] .. '-' .. rands[3]
 end
+
+function initGuild(guild)
+	
+end

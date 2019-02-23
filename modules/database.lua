@@ -2,8 +2,8 @@ local rData = options.database
 local rEmitter = rethinkdb.emitter
 local ts, fmt = tostring, string.format
 
-local database = {
-	_db = reql
+database = {
+	_db = rethinkdb
 }
 
 if rData.cache then
@@ -13,11 +13,11 @@ end
 local connect
 
 function connect()
-	local conn = rethink.connect(data)
+	local conn = rethinkdb.connect(data)
 	database._conn = conn
 end
 
-emitter:on('quit', function()
+rEmitter:on('quit', function()
 	connect()
 end)
 
