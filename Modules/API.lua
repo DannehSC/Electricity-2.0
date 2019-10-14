@@ -4,7 +4,7 @@ API={
 	Endpoints={
 		['DBots_Stats']='https://bots.discord.pw/api/bots/%s/stats',
 		['DBotsOrg_Stats']='https://bots.discord.pw/api/bots/%s/stats',
-		['Meow']='http://random.cat/meow',
+		['Meow']='https://aws.random.cat/meow',
 		['Bork']='https://dog.ceo/api/breeds/image/random',
 		['Urban']='https://api.urbandictionary.com/v0/define?term=%s',
 		['Carbon']='https://www.carbonitex.net/discord/data/botdata.php',
