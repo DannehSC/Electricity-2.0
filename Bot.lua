@@ -1,8 +1,6 @@
 fs = require('fs')
 options = require('./options')
 discordia = require('discordia')
-token = options.Token
-hooks = options.Hooks
 enums = discordia.enums
 client = discordia.Client()
 uptime = discordia.Stopwatch()
@@ -54,7 +52,14 @@ end
 
 coroutine.wrap(function()
 	local s = require('timer').sleep
+
+	repeat s(1000) until options
+	token = options.Token
+	hooks = options.Hooks
+		
+
 	repeat s(1000) until token
+
 
 	loadModule('Functions')
 	loadModule('Database')
@@ -69,6 +74,5 @@ coroutine.wrap(function()
 	client:on('guildDelete', Events.guildDelete)
 	client:on('memberJoin', Events.memberCreate)
 	client:once('ready', Events.ready)
-	
 	client:run('Bot ' .. token)
 end)()
