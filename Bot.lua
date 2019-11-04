@@ -54,7 +54,7 @@ end
 
 coroutine.wrap(function()
 	local s = require('timer').sleep
-	repeat s(1000) until token
+	repeat s(1) until token
 
 	loadModule('Functions')
 	loadModule('Database')
