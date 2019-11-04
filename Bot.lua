@@ -1,5 +1,4 @@
 fs = require('fs')
-options = require('./options')
 discordia = require('discordia')
 enums = discordia.enums
 client = discordia.Client()
@@ -51,9 +50,10 @@ function loadModule(name)
 end
 
 coroutine.wrap(function()
-	local s = require('timer').sleep
-
-	repeat s(1000) until options
+	local sleep = require('timer').sleep
+	repeat sleep(1000) until process.env.get("RETHINKDB_PORT_28015_TCP_ADDR");
+	
+	options = require('./options')
 	token = options.Token
 	hooks = options.Hooks
 
