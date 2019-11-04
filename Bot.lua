@@ -1,5 +1,4 @@
 fs = require('fs')
-options = require('./options')
 discordia = require('discordia')
 enums = discordia.enums
 client = discordia.Client()
@@ -52,8 +51,9 @@ end
 
 coroutine.wrap(function()
 	local s = require('timer').sleep
-
-	repeat s(1000) until options
+	options = require('./options')
+	
+	repeat s(1000) until type(options) == "table" and options.Token
 	token = options.Token
 	hooks = options.Hooks
 
@@ -63,6 +63,7 @@ coroutine.wrap(function()
 	loadModule('Events')
 	loadModule('Timed')
 	loadModule('API')
+	
 	client:on('messageCreate', Events.messageCreate)
 	client:on('messageUpdate', Events.messageUpdate)
 	client:on('messageDelete', Events.messageDelete)
@@ -70,5 +71,6 @@ coroutine.wrap(function()
 	client:on('guildDelete', Events.guildDelete)
 	client:on('memberJoin', Events.memberCreate)
 	client:once('ready', Events.ready)
+	
 	client:run('Bot ' .. token)
 end)()
