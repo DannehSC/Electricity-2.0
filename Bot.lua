@@ -53,6 +53,8 @@ function loadModule(name)
 end
 
 coroutine.wrap(function()
+	local s = require('timer').sleep
+	
 	loadModule('Functions')
 	loadModule('Database')
 	loadModule('Commands')
@@ -66,5 +68,8 @@ coroutine.wrap(function()
 	client:on('guildDelete', Events.guildDelete)
 	client:on('memberJoin', Events.memberCreate)
 	client:once('ready', Events.ready)
+
+	repeat s(1000) until token
+
 	client:run('Bot ' .. token)
 end)()
