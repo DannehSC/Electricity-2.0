@@ -56,10 +56,6 @@ coroutine.wrap(function()
 	repeat s(1000) until options
 	token = options.Token
 	hooks = options.Hooks
-		
-
-	repeat s(1000) until token
-
 
 	loadModule('Functions')
 	loadModule('Database')
