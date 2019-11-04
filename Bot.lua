@@ -1,70 +1,77 @@
-fs = require('fs')
-options = require('./options')
-discordia = require('discordia')
-token = options.Token
-hooks = options.Hooks
-enums = discordia.enums
-client = discordia.Client()
-uptime = discordia.Stopwatch()
-
-discordia.extensions()
-
-HMath = require('./Modules/MathParser.lua')
-
-function FFB(t) --format for beta
-	if beta == true then
-		return t..'_B'
-	else
-		return t
-	end
-end
-
-function loadModule(name)
-	name = name .. '.lua'
-	local data,others = fs.readFileSync('./Modules/' .. name)
-	if data then
-		local a,b = loadstring(data,name)
-		if not a then
-			print("<SYNTAX> ERROR LOADING " .. name .. "\nERROR:" .. b)
-			if sendLog then
-				sendLog(hooks[FFB('Errors')], "MODULE SYNTAX", string.format("MODULE NAME: %s\nERROR: %s", name, tostring(b)))
-			end
-			return false
+coroutine.wrap(function()
+	local s = require('timer').sleep
+	
+	fs = require('fs')
+	options = require('./options')
+	discordia = require('discordia')
+	token = options.Token
+	hooks = options.Hooks
+	enums = discordia.enums
+	client = discordia.Client()
+	uptime = discordia.Stopwatch()
+	
+	discordia.extensions()
+	
+	HMath = require('./Modules/MathParser.lua')
+	
+	function FFB(t) --format for beta
+		if beta == true then
+			return t..'_B'
 		else
-			setfenv(a, getfenv())
-			local c,d = pcall(a)
-			if not c then
-				print("<RUNTIME> ERROR LOADING " .. name .. "\nERROR:" .. d)
+			return t
+		end
+	end
+	
+	function loadModule(name)
+		name = name .. '.lua'
+		local data,others = fs.readFileSync('./Modules/' .. name)
+		if data then
+			local a,b = loadstring(data,name)
+			if not a then
+				print("<SYNTAX> ERROR LOADING " .. name .. "\nERROR:" .. b)
 				if sendLog then
-					sendLog(hooks[FFB('Errors')], "MODULE RUNTIME", string.format("MODULE NAME: %s\nERROR: %s", name, tostring(d)))
+					sendLog(hooks[FFB('Errors')], "MODULE SYNTAX", string.format("MODULE NAME: %s\nERROR: %s", name, tostring(b)))
 				end
 				return false
 			else
-				client:info('Module online: ' .. name)
+				setfenv(a, getfenv())
+				local c,d = pcall(a)
+				if not c then
+					print("<RUNTIME> ERROR LOADING " .. name .. "\nERROR:" .. d)
+					if sendLog then
+						sendLog(hooks[FFB('Errors')], "MODULE RUNTIME", string.format("MODULE NAME: %s\nERROR: %s", name, tostring(d)))
+					end
+					return false
+				else
+					client:info('Module online: ' .. name)
+				end
 			end
+		else
+			print("<LOADING> ERROR LOADING " .. name .. "\nERROR:" .. tostring(data), tostring(others))
+			if sendLog then
+				sendLog(hooks[FFB('Errors')], "MODULE LOADING", string.format("MODULE NAME: %s\nERROR: %s", name, tostring(data) .. '\n' .. tostring(others)))
+			end
+			return false
 		end
-	else
-		print("<LOADING> ERROR LOADING " .. name .. "\nERROR:" .. tostring(data), tostring(others))
-		if sendLog then
-			sendLog(hooks[FFB('Errors')], "MODULE LOADING", string.format("MODULE NAME: %s\nERROR: %s", name, tostring(data) .. '\n' .. tostring(others)))
-		end
-		return false
 	end
-end
+	
+	coroutine.wrap(function()
+		loadModule('Functions')
+		loadModule('Database')
+		loadModule('Commands')
+		loadModule('Events')
+		loadModule('Timed')
+		loadModule('API')
+		client:on('messageCreate', Events.messageCreate)
+		client:on('messageUpdate', Events.messageUpdate)
+		client:on('messageDelete', Events.messageDelete)
+		client:on('guildCreate', Events.guildCreate)
+		client:on('guildDelete', Events.guildDelete)
+		client:on('memberJoin', Events.memberCreate)
+		client:once('ready', Events.ready)
 
-coroutine.wrap(function()
-	loadModule('Functions')
-	loadModule('Database')
-	loadModule('Commands')
-	loadModule('Events')
-	loadModule('Timed')
-	loadModule('API')
-	client:on('messageCreate', Events.messageCreate)
-	client:on('messageUpdate', Events.messageUpdate)
-	client:on('messageDelete', Events.messageDelete)
-	client:on('guildCreate', Events.guildCreate)
-	client:on('guildDelete', Events.guildDelete)
-	client:on('memberJoin', Events.memberCreate)
-	client:once('ready', Events.ready)
-	client:run('Bot ' .. token)
-end)()
+		repeat s(1000) until token
+
+		client:run('Bot ' .. token)
+	end)()
+end)
