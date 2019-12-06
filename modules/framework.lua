@@ -9,6 +9,7 @@ function framework.loadModule(name, file)
 	local bool, mod = pcall(function()
 		return fs.readFileSync(file)
 	end)
+	
 	if bool then
 		local syn, err = loadstring(mod, name)
 		if syn then
@@ -35,13 +36,32 @@ discordia.extensions()
 framework.events = {}
 
 function framework.events.messageCreated(message)
+	local a, b = pcall(function()
+		local guild = message.guild
+		local gdata = database.default
+		local data
+		
+		if message.author.bot then return end
+		if guild then
+			data = database:get(guild)
+		else
+			data = database.default
+		end
+		
+		if message.content == data.Settings.bet .. 'string' then
+			error('lol')
+		end
+	end)
 	
+	if not a then
+		rethinkdb.logger:warn('Error processing message by `' .. tostring(message.author.name) .. '` | Content: ' .. tostring(message.content) .. ' | Error: ' .. tostring(b))
+	end
 end
 
 function framework:run()
 	database:run()
 	stats:prepare()
-	client:on('messageCreated', self.events.messageCreated)
+	client:on('messageCreate', self.events.messageCreated)
 	client:once('ready', function()
 		timer:init()
 		stats:init()

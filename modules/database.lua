@@ -431,7 +431,7 @@ function database:get(id)
 				local data = table.deepcopy(self.default)
 				data[id] = id
 				if rData.cache then
-					self.cache[id] = data
+					self._cache[id] = data
 				end
 				u = true
 			else
@@ -457,8 +457,8 @@ function database:get(id)
 		end
 	end
 	if rData.cache then
-		if self.cache[id] then
-			return self.cache[id]
+		if self._cache[id] then
+			return self._cache[id]
 		else
 			return doQuery()
 		end
@@ -471,8 +471,8 @@ function database:getCached(id)
 	local guild, id = resolver:guild(id)
 	if not guild then return id end
 	if rData.cache then
-		if self.cache[id] then
-			return self.cache[id]
+		if self._cache[id] then
+			return self._cache[id]
 		else
 			return
 		end
@@ -513,11 +513,11 @@ function database:update(id, data)
 	local guild, id = resolver:guild(id)
 	if not guild then return id end
 	if rData.cache then
-		if self.cache[id] then
-			if not self.cache[id].id then
-				self.cache[id].id = id
+		if self._cache[id] then
+			if not self._cache[id].id then
+				self._cache[id].id = id
 			end
-			local data, err, edata = getDBQuery().inOrRe(self.cache[id]).run()
+			local data, err, edata = getDBQuery().inOrRe(self._cache[id]).run()
 			if err then
 				print('DB UPDATE ERR -', tostring(err))
 				p(edata)

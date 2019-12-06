@@ -1,4 +1,5 @@
 local ts, tn, fmt = tostring, tonumber, string.format
+local classType = discordia.class.type
 
 function getIdFromStr(str)
 	if not str then return end
@@ -11,25 +12,21 @@ end
 resolver = {}
 
 function resolver:guild(var)
+	local guild
 	if not var then
 		return nil, 'No ID/name/message provided. Cannot resolve guild.'
 	end
-	var = ts(var)
-	local guild
 	if type(var) == 'table' then
-		if g.guild then
-			guild = g.guild
-		elseif g.getRole then
-			guild = g
+		if classType(var) == 'Guild' then
+			guild = var
+		elseif classType(g) == 'Channel' or classType(g) == 'Message' then
+			guild = var.guild
 		end
 	else
-		local g = client:getGuild(var)
-		if g then
-			guild = g
-		end
+		guild = client:getGuild(ts(var))
 	end
-	if g then
-		return g, var
+	if guild then
+		return guild, guild.id
 	else
 		return nil, 'Guild could not be resolved.'
 	end
@@ -52,7 +49,7 @@ function resolver:channel(guild, name)
 	if chan then
 		return chan
 	else
-		return nil, 'Role could not be resolved.'
+		return nil, 'Channel could not be resolved.'
 	end
 end
 
