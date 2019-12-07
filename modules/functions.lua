@@ -1,3 +1,5 @@
+local ssl = require('openssl')
+
 local ts, tn, fmt = tostring, tonumber, string.format
 local classType = discordia.class.type
 
@@ -77,7 +79,6 @@ end
 idMaker = {}
 
 function idMaker:generate()
-	local id = ''
 	local rands = {
 		ssl.base64(ssl.random(6)),
 		ssl.base64(ssl.random(4)),
@@ -87,5 +88,32 @@ function idMaker:generate()
 end
 
 function initGuild(guild)
+	if database._cache then
+		
+	end
+end
+
+function sendMessage(obj, content)
+	local continue, newContent, msg
+	if type(content) == 'string' then
+		if #content >= 1999 then
+			continue = true
+			newContent = content:sub(1983)
+			content = content:sub(1, 1982) .. ' [CONTINUED]'
+		end
+	end
 	
+	if classType(obj) == 'Message' then
+		msg = obj:reply(content)
+	elseif classType(obj) == 'PrivateChannel' then
+		msg = obj:send(content)
+	elseif classType(obj) == 'GuildTextChannel' then
+		msg = obj:send(content)
+	end
+	
+	if continue then
+		sendMessage(obj, newContent)
+	end
+	
+	return msg
 end

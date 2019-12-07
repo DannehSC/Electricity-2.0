@@ -9,12 +9,16 @@ function commands:addCommand(name, desc, cmds, rank, func, opts)
 	self.count = self.count + 1
 end
 
-commands:addCommand('Guild Data', 'Gathers data about the guild.', 'ginfo', 0, function(message)
+commands:addCommand('Guild Data', 'Gathers data about the guild.', 'ginfo', 0, function(message, text)
 	
 end)
 
-commands:addCommand('Id Generator', 'Generates identification codes.', 'id', 0, function(message)
-	message:reply(idMaker:generate())--sendMessage(message, idMaker:generate())
+commands:addCommand('Id Generator', 'Generates identification codes.', 'id', 0, function(message, text)
+	sendMessage(message, idMaker:generate())
+end)
+
+commands:addCommand('Beep', 'Beep', 'beep', 0, function(message, text)
+	sendMessage(message, 'Beep.')
 end)
 
 return commands

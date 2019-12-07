@@ -38,7 +38,7 @@ framework.events = {}
 function framework.events.messageCreated(message)
 	local a, b = pcall(function()
 		local guild = message.guild
-		local gdata = database.default
+		local content = message.content
 		local data
 		
 		if message.author.bot then return end
@@ -48,8 +48,25 @@ function framework.events.messageCreated(message)
 			data = database.default
 		end
 		
-		if message.content == data.Settings.bet .. 'string' then
-			error('lol')
+		if type(content) ~= 'string' then
+			return
+		end
+		
+		local bet = data.Settings.bet
+		if message.mentionedUsers.first == client.user then
+			return sendMessage(message, ('My name is Electricity!\nTo learn more about me, say `%sbinfo`\nTo learn more commands, say `%scmds`'):format(bet, bet))
+		end
+		
+		content = content:lower()
+		
+		if content:sub(1, #bet) == bet then
+			for i, v in pairs(commands.cmds) do
+				for ii, vv in pairs(v.cmds) do
+					if content:sub(#bet + 1) == vv:lower() then
+						v.func(message, content:sub(#bet + #vv + 1))
+					end
+				end
+			end
 		end
 	end)
 	
