@@ -1,0 +1,12 @@
+options.lua
+deps/
+luvit
+luvit.exe
+lit
+lit.exe
+luvi
+luvi.exe
+rethinkdb_data/
+gateway.json
+discordia.log
+.DS_STORE

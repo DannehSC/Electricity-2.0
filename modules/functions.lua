@@ -1,7 +1,16 @@
 local ssl = require('openssl')
 
+local color = discordia.Color.fromRGB
 local ts, tn, fmt = tostring, tonumber, string.format
 local classType = discordia.class.type
+colors = {
+	red = color(255,0,0).value,
+	blue = color(0,0,255).value,
+	green = color(0,255,0).value,
+	orange = color(255,160,0).value,
+	yellow = color(255,255,0).value,
+	bright_blue = color(0,200,255).value,
+}
 
 function getIdFromStr(str)
 	if not str then return end
@@ -116,4 +125,20 @@ function sendMessage(obj, content)
 	end
 	
 	return msg
+end
+
+function embed(title, description, color, fields, other)
+	local emb = {}
+	emb['title'] = title or nil
+	emb['description'] = description or nil
+	emb['color'] = color or nil
+	emb['fields'] = fields or nil
+
+	if other then
+		for index, value in pairs(other) do
+			emb[index] = value
+		end
+	end
+
+	return { embed = emb }
 end
