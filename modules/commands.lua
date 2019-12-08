@@ -1,10 +1,10 @@
-local uv = require('uv')
-local operatingsystem = require('ffi').os
-local cpu = uv.cpu_info()
-local threads = #cpu
-local cpumodel = cpu[1].model
-
 local ts = tostring
+
+local uv = require('uv')
+local operatingsystem = ts(require('ffi').os)
+local cpu = uv.cpu_info()
+local threads = ts(#cpu)
+local cpumodel = cpu[1].model
 
 commands = {
 	cmds = {},
@@ -54,7 +54,7 @@ commands:addCommand('Rock Paper Scissors', 'The name says it all.', 'rps', 0, fu
 
 	local num = optionNumbers[text and text:lower() or nil]
 	if num then
-		if (optn == 1 and num == 3) or (optn == 3 and num == 2) or (optn == 2 and num == 1) then
+		if (optn == 3 and num == 1) or (optn == 2 and num == 3) or (optn == 1 and num == 2) then
 			sendMessage(message, embed('Rock Paper Scissors', string.format("Your choice: **%s**\nBot choice: **%s**\nYou win!", text, opt), colors.yellow))
 		elseif optn == num then
 			sendMessage(message, embed('Rock Paper Scissors', string.format("Your choice: **%s**\nBot choice: **%s**\nTie!", text, opt), colors.yellow))
@@ -103,9 +103,9 @@ end)
 commands:addCommand('Nerdy info', 'Info for nerds.', 'ninfo', 0, function(message)
 	local mem = math.floor(collectgarbage('count') / 1000)
 	sendMessage(message, embed('Nerdy Info', nil, colors.yellow, {
-		{ name = 'OS:', value = ts(operatingsystem) },
-		{ name = 'CPU Threads:', value = ts(threads) },
-		{ name = 'CPU Model:', value = ts(cpumodel) },
+		{ name = 'OS:', value = operatingsystem },
+		{ name = 'CPU Threads:', value = threads },
+		{ name = 'CPU Model:', value = cpumodel },
 		{ name = 'Memory usage:', value = ts(mem) .. ' MB' },
 	}))
 end)
