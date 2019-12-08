@@ -9,7 +9,7 @@ colors = {
 	green = color(0,255,0).value,
 	orange = color(255,160,0).value,
 	yellow = color(255,255,0).value,
-	bright_blue = color(0,200,255).value,
+	brightBlue = color(0,200,255).value,
 }
 
 function getIdFromStr(str)
@@ -25,7 +25,7 @@ resolver = {}
 function resolver:guild(var)
 	local guild
 	if not var then
-		return nil, 'No ID/name/message provided. Cannot resolve guild.'
+		return nil, 'No ID/channel/message provided. Cannot resolve guild.'
 	end
 	if type(var) == 'table' then
 		if classType(var) == 'Guild' then
@@ -96,10 +96,30 @@ function idMaker:generate()
 	return rands[1] .. '-' .. rands[2] .. '-' .. rands[3]
 end
 
+function getRank(member)
+	
+end
+
 function initGuild(guild)
 	if database._cache then
-		
+		database:get(guild) -- pre-caching
 	end
+end
+
+function embed(title, description, color, fields, other)
+	local emb = {}
+	emb['title'] = title or nil
+	emb['description'] = description or nil
+	emb['color'] = color or nil
+	emb['fields'] = fields or nil
+
+	if other then
+		for index, value in pairs(other) do
+			emb[index] = value
+		end
+	end
+
+	return { embed = emb }
 end
 
 function sendMessage(obj, content)
@@ -125,20 +145,4 @@ function sendMessage(obj, content)
 	end
 	
 	return msg
-end
-
-function embed(title, description, color, fields, other)
-	local emb = {}
-	emb['title'] = title or nil
-	emb['description'] = description or nil
-	emb['color'] = color or nil
-	emb['fields'] = fields or nil
-
-	if other then
-		for index, value in pairs(other) do
-			emb[index] = value
-		end
-	end
-
-	return { embed = emb }
 end
