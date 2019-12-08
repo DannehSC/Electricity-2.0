@@ -39,7 +39,7 @@ function framework.events.messageCreated(message)
     local a, b = pcall(function()
         local guild = message.guild
         local content = message.content
-        local data
+        local data, rank = 0
         
         if message.author.bot then return end
         if guild then
@@ -55,7 +55,7 @@ function framework.events.messageCreated(message)
         
         local bet = data.Settings.bet
         if message.mentionedUsers.first == client.user then
-            return sendMessage(message, ('My name is Electricity!\nTo learn more about me, say `%sbinfo`\nTo learn more commands, say `%scmds`'):format(bet, bet))
+            return sendMessage(message, ('My name is Electricity!\nTo learn more about me, say `%sabout`\nTo learn more commands, say `%scmds`'):format(bet, bet))
         end
         
         content = content:lower()
@@ -64,10 +64,22 @@ function framework.events.messageCreated(message)
             for i, v in pairs(commands.cmds) do
 				for ii, vv in pairs(v.cmds) do
 					if content:sub(betPos, (betPos + #vv) - 1) == vv:lower() then
-						local args = {}
-						for word in (content:sub(#bet + #vv + 1)):gmatch("%w+") do table.insert(args, word) end
-						v.func(message, #args > 0 and unpack(args)) -- only call unpack() on args if it is bigger than zero
-                    end
+						if guild then
+							rank = getRank(message.member)
+						end
+						
+						if message.author.id == client.owner.id then
+							rank = 4
+						end
+						
+						if rank > v.rank then
+							local args = {}
+							for word in (content:sub(#bet + #vv + 1)):gmatch("%w+") do table.insert(args, word) end
+							v.func(message, #args > 0 and unpack(args)) -- only call unpack() on args if it is bigger than zero
+						else
+							sendMessage(message, ('You cannot use this command. Your rank is insufficient. [%d/%d]'):format(rank, v.rank))
+						end
+					end
                 end
             end
         end

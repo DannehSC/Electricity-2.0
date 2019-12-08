@@ -17,10 +17,6 @@ function commands:addCommand(name, desc, cmds, rank, func, opts)
 	self.count = self.count + 1
 end
 
-commands:addCommand('Guild Data', 'Gathers data about the guild.', 'ginfo', 0, function(message, text)
-	
-end)
-
 commands:addCommand('Join', 'Sends a link to join the official Electricity guild!', 'join', 0, function(message)
 	sendMessage(message, embed(nil, "[Invite](https://discordapp.com/invite/KCMxtK8)", colors.yellow))
 end)
@@ -66,16 +62,20 @@ commands:addCommand('Rock Paper Scissors', 'The name says it all.', 'rps', 0, fu
 	end
 end)
 
-commands:addCommand('About', 'Reads you info about the bot.', { 'about', 'help' }, 0, function(message,args)
-	local tx = ''
-	local owner = client.owner
+commands:addCommand('About', 'Reads you info about the bot.', { 'about', 'help', 'binfo'}, 0, function(message, args)
+	local tx, count, owner = '', 0, client.owner
 	local dbSettings = database:get(message).Settings
 	local bet = dbSettings and dbSettings.bet or database.default.Settings.bet
 	local function append(ntx, fin)
 		fin = fin or false
 		tx = tx .. ntx .. (fin == false and '\n\n' or '')
 	end
-	append("I am the bot known as Electricity 2.0.")
+	
+	for g in client.guilds:iter() do	
+		count = count + g.totalMemberCount
+	end
+	
+	append("I am the bot known as Electricity (3.0)")
 	append("I was created by %s#%d (DannehSC on Github)")
 	append("To see the commands list: Please say `%scmds` or `%scommands`")
 	append("To see nerd info: Please say `%sninfo`")
@@ -84,16 +84,7 @@ commands:addCommand('About', 'Reads you info about the bot.', { 'about', 'help' 
 	append("To join the support server: `%sjoin` or `%sjoin2`")
 	append("If you are in a guild, you can see info about the guild. Please say `%sginfo`")
 	append("Thank you for using Electricity!", true)
-	sendMessage(message, embed("Info", (tx):format(owner.username, owner.discriminator, bet, bet, bet, bet, bet, bet, bet, bet), colors.bright_blue), true)
-end)
-
-commands:addCommand('Bot Info', 'Fetches info about the bot!', 'binfo', 0, function(message)
-	local count = 0
-	for g in client.guilds:iter() do	
-		count = count + g.totalMemberCount
-	end
-
-	sendMessage(message, embed("Bot info", nil, colors.yellow, {
+	sendMessage(message, embed("Info", (tx):format(owner.username, owner.discriminator, bet, bet, bet, bet, bet, bet, bet, bet), colors.brightBlue, {
 		{ name = "Guild count", value = #client.guilds, inline = true },
 		{ name = "Shard count", value = client.shardCount, inline = true },
 		{ name = "Member count", value = count, inline = true },
@@ -108,6 +99,10 @@ commands:addCommand('Nerdy info', 'Info for nerds.', 'ninfo', 0, function(messag
 		{ name = 'CPU Model:', value = ts(cpumodel) },
 		{ name = 'Memory usage:', value = ts(mem) .. ' MB' },
 	}))
+end)
+
+commands:addCommand('Guild Data', 'Gathers data about the guild.', 'ginfo', 0, function(message, text)
+	
 end)
 
 return commands
