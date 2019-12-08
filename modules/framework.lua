@@ -65,14 +65,14 @@ function framework.events.messageCreated(message)
 				for ii, vv in pairs(v.cmds) do
 					if content:sub(betPos, (betPos + #vv) - 1) == vv:lower() then
 						if guild then
-							rank = getRank(message.member)
+							rank = getRank(message.member) or 0 -- rank might not exist in database yet, need to set it if nil to default 0
 						end
 						
 						if message.author.id == client.owner.id then
 							rank = 4
 						end
 						
-						if rank > v.rank then
+						if rank >= v.rank then
 							local args = {}
 							for word in (content:sub(#bet + #vv + 1)):gmatch("%w+") do table.insert(args, word) end
 							v.func(message, #args > 0 and unpack(args)) -- only call unpack() on args if it is bigger than zero
