@@ -41,7 +41,6 @@ commands:addCommand('Rock Paper Scissors', 'The name says it all.', 'rps', 0, fu
 	local rand = math.random(1,99)
 	local options, optionNumbers = { 'rock', 'paper', 'scissors' }, { ['rock'] = 1, ['paper'] = 2, ['scissors'] = 3 }
 	local opt, optn
-	local bwin
 	if rand > 66 then
 		opt = options[3]
 		optn = 3
@@ -55,9 +54,9 @@ commands:addCommand('Rock Paper Scissors', 'The name says it all.', 'rps', 0, fu
 
 	local num = optionNumbers[text and text:lower() or nil]
 	if num then
-		if (optn == 1 and n == 3) or (optn == 3 and n == 2) or (optn == 2 and n == 1) then
+		if (optn == 1 and num == 3) or (optn == 3 and num == 2) or (optn == 2 and num == 1) then
 			sendMessage(message, embed('Rock Paper Scissors', string.format("Your choice: **%s**\nBot choice: **%s**\nYou win!", text, opt), colors.yellow))
-		elseif optn == n then
+		elseif optn == num then
 			sendMessage(message, embed('Rock Paper Scissors', string.format("Your choice: **%s**\nBot choice: **%s**\nTie!", text, opt), colors.yellow))
 		else
 			sendMessage(message, embed('Rock Paper Scissors', string.format("Your choice: **%s**\nBot choice: **%s**\nYou lose!", text, opt), colors.yellow))
