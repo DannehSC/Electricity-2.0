@@ -66,7 +66,7 @@ function framework.events.messageCreated(message)
 					if content:sub(betPos, betPos + #vv):gsub(" ", "") == vv:lower() then
 						local args = {}
 						for word in (content:sub(#bet + #vv + 1)):gmatch("%w+") do table.insert(args, word) end
-						v.func(message, #args > 0 and unpack(args)) -- only call unpack() on args
+						v.func(message, #args > 0 and unpack(args)) -- only call unpack() on args if it is bigger than zero
                     end
                 end
             end
