@@ -28,7 +28,7 @@ commands:addCommand('Join2', 'Sends a raw link to join the official Electricity 
 	sendMessage(message, "https://discordapp.com/invite/KCMxtK8")
 end)
 
-commands:addCommand('Feedback', 'Send feedback to the Electricity staff.', {'feedback','fb'}, 0, function(message, ...)
+commands:addCommand('Feedback', 'Send feedback to the Electricity staff.', { 'feedback','fb' }, 0, function(message, ...)
 	local text = table.concat(..., " ") -- join the seperated args together to form the message
 	local guildId = '284895856031956992'
 	local channelId = '415731489926283267'
@@ -100,7 +100,7 @@ commands:addCommand('Rock Paper Scissors', 'The name says it all.', 'rps', 0, fu
 	end
 end)
 
-commands:addCommand('About', 'Reads you info about the bot.', { 'about', 'help', 'binfo'}, 0, function(message, args)
+commands:addCommand('About', 'Reads you info about the bot.', { 'about', 'help', 'binfo' }, 0, function(message, args)
 	local tx, count, owner = '', 0, client.owner
 	local dbSettings = database:get(message).Settings
 	local bet = dbSettings and dbSettings.bet or database.default.Settings.bet
@@ -139,7 +139,7 @@ commands:addCommand('Nerdy info', 'Info for nerds.', 'ninfo', 0, function(messag
 	}))
 end)
 
-commands:addCommand('User Info', 'Fetches info about a user', 'uinfo', 0, function(message,args)
+commands:addCommand('User Info', 'Fetches info about a user', 'uinfo', 0, function(message)
 	local u = message.mentionedUsers:iter()()
 	if not u then
 		u = message.author
@@ -156,6 +156,65 @@ commands:addCommand('User Info', 'Fetches info about a user', 'uinfo', 0, functi
 		{ name = "Joined guild at", value = convertJoinedAtToTime(m.joinedAt), inline = true },
 		{ name = "Joined discord at", value = convertJoinedAtToTime(u.timestamp), inline = true },
 	}))
+end)
+
+commands:addCommand('Uptime', 'Returns the time the bot has been loaded.', 'uptime', 0, function(message)
+	local time = uptime:getTime():toTable()
+	sendMessage(message, embed(nil, string.format("Week%s: %s\nDay%s: %s\nHour%s: %s\nMinute%s: %s\nSecond%s: %s",
+		time.weeks ~= 1 and 's' or '', time.weeks,
+		time.days ~= 1 and 's' or '', time.days,
+		time.hours ~= 1 and 's' or '', time.hours,
+		time.minutes ~= 1 and 's' or '', time.minutes,
+		time.seconds ~= 1 and 's' or '', time.seconds
+	), colors.blue))
+end)
+
+commands:addCommand('Bot invite', 'Sends you the bot invite links.', 'botinv', 0, function(message)
+	sendMessage(message,embed('Links',
+		"[Non administrative](https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot)\n[Administrative](https://discordapp.com/oauth2/authorize?client_id=284380758611591170&scope=bot&permissions=8)",
+	colors.yellow))
+end)
+
+commands:addCommand('Cat picture', 'Gets a cat picture', { 'cat', 'kitty', 'cpic' }, 0, function(message)
+	local file, err = API.Misc:Cats()
+	sendMessage(message, file or err)
+end)
+
+commands:addCommand('Coin flip!', 'Flips a coin!', { 'cflip', 'coinflip', 'flippy' } , 0, function(message)
+	sendMessage(message, embed(nil, (math.random(1, 2) == 1 and "Tails" or "Heads"), colors.yellow))
+end)
+
+commands:addCommand('Roll the dice', 'Dice!', { 'rtdice', 'dice', 'roll' }, 0, function(message)
+	sendMessage(message, embed(nil, "You rolled a " .. tostring(math.random(1, 6)), colors.yellow))
+end)
+
+commands:addCommand('Dog picture', 'Gets a dog picture', { 'dog', 'bork', 'dogpic' }, 0, function(message)
+	local file, err = API.Misc:Dogs()
+	sendMessage(message, file or err)
+end)
+
+commands:addCommand('Joke', 'Gets a joke', { 'joke', 'joker', 'batmansparents', 'dadjoke' }, 0, function(message)
+	local joke = API.Misc:Joke()
+	sendMessage(message, joke)
+end)
+
+commands:addCommand('Commands', 'Grabs the list of commands for your rank.', { 'cmds', 'commands' }, 0, function(message)
+	local Rank = getRank(message.member) or 0
+	local cmds = splitForDiscord(Rank)
+	local msg = sendMessage(message.author, 'Sending commands')
+	if msg then
+		msg:delete()
+
+		for _,cmd in pairs(cmds) do
+			sendMessage(message.author, cmd)
+		end
+
+		if message.guild ~= nil then
+			sendMessage(message, embed('Notification', 'Commands sent to DMs.', colors.yellow))
+		end
+	else
+		sendMessage(message, embed("Commands", "__***Could not send commands via DM.***__\nPlease enable direct messages", colors.yellow))
+	end
 end)
 
 commands:addCommand('Guild Data', 'Gathers data about the guild.', 'ginfo', 0, function(message, text)

@@ -2,7 +2,6 @@ fs = require('fs')
 http = require('coro-http')
 discordia = require('discordia')
 rethinkdb = require('luvit-reql')
-
 framework = {}
 
 function framework.loadModule(name, file)
