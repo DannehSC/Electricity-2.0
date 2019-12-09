@@ -3,10 +3,10 @@ _G.options = require('./options.lua')
 local framework = require('./modules/framework.lua')
 
 local order = {
+	'functions',
 	'database',
 	'api',
 	'commands',
-	'functions',
 	'timer',
 	'stats',
 }
