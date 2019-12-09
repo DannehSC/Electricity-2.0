@@ -97,7 +97,53 @@ function idMaker:generate()
 end
 
 function getRank(member)
-	
+	if not member then
+		return 0
+	end
+	local guild = member.guild
+	local rank = 0
+	if server then
+		--[[
+			TODO: We seriously could make this more efficient by not using a ton of loops
+			and making the database index like a table upon returning "Settings"
+		--]]
+		local settings = database:get(member.guild).Settings
+		for i, v in pairs(settings.mod_roles) do
+			local o = member.guild:getRole(v)
+			if o then
+				if member:hasRole(o) then
+					rank = 1
+				end
+			end
+		end
+		for i, v in pairs(settings.admin_roles) do
+			local o=member.guild:getRole(v)
+			if o then
+				if member:hasRole(o)then
+					rank=2
+				end
+			end
+		end
+		for i, v in pairs(settings.co_owner_roles) do
+			local o = member.guild:getRole(v)
+			if o then
+				if member:hasRole(o) then
+					rank=3
+				end
+			end
+		end
+		local owner = member.guild:getMember(member.guild.ownerId)
+		if owner and member.id == owner.id then
+			rank = 3
+		end
+	end
+	if member.id == client.user.id then
+		rank = 3
+	end
+	if member.id == client.owner.id then
+		rank = 4
+	end
+	return rank
 end
 
 function initGuild(guild)
@@ -145,4 +191,24 @@ function sendMessage(obj, content)
 	end
 	
 	return msg
+end
+
+local function split(msg, bet)
+	local f = msg:find(bet)
+	if f then
+		return msg:sub(1, f - 1), msg:sub(f + 1)
+	else
+		return msg
+	end
+end
+
+function convertJoinedAtToTime(tim)
+	if not tim then return "<NULL>" end
+	local Date, Rest = split(tim, 'T')
+	local Time1, Time2 = split(Rest, ':')
+	Time1 = tonumber(Time1)
+	local M = Time1 > 12 and "PM" or "AM"
+	Time1 = Time1 > 12 and Time1 - 12 or Time1
+	
+	return (Time1 .. ':' .. Time2:sub(1,5) .. " " .. M .. " - " .. Date)
 end

@@ -73,9 +73,7 @@ function framework.events.messageCreated(message)
 						end
 						
 						if rank >= v.rank then
-							local args = {}
-							for word in (content:sub(#bet + #vv + 1)):gmatch("%w+") do table.insert(args, word) end
-							v.func(message, #args > 0 and unpack(args)) -- only call unpack() on args if it is bigger than zero
+							v.func(message, (content:sub(#bet + #vv + 1)):split(" "))
 						else
 							sendMessage(message, ('You cannot use this command. Your rank is insufficient. [%d/%d]'):format(rank, v.rank))
 						end
