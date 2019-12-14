@@ -2,7 +2,6 @@
 operatingsystem=require('ffi').os
 color=discordia.Color.fromRGB
 mutex=discordia.Mutex()
-hparser=require('html-parser')
 pprint=require("pretty-print")
 query=require("querystring")
 enclib=require("encrypter")
