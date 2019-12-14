@@ -1,5 +1,7 @@
 fs = require('fs')
 options = require('./options')
+token = options.Token
+hooks = options.Hooks
 discordia = require('discordia')
 enums = discordia.enums
 client = discordia.Client()
@@ -51,14 +53,6 @@ function loadModule(name)
 end
 
 coroutine.wrap(function()
-	local s = require('timer').sleep
-
-	repeat s(1000) until options
-	token = options.Token
-	hooks = options.Hooks
-
-	repeat s(1000) until token
-
 	loadModule('Functions')
 	loadModule('Database')
 	loadModule('Commands')
