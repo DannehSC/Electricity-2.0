@@ -14,8 +14,9 @@ function Events.messageCreate(message)
 	if not message.guild then
 		private=true
 	else
-		settings=Database:Get(message).Settings
-		ignore=Database:Get(message).Ignore
+		query = Database:Get(message.guild)
+		settings=query.Settings
+		ignore=query.Ignore
 		isServer=true
 		local filt,reason=filter(message)
 		if filt then
@@ -104,7 +105,7 @@ end
 function Events.messageUpdate(message)
 	if message.author.bot==true then return end
 	if message.channel.isPrivate then return end
-	local settings=Database:Get(message).Settings
+	local settings=Database:Get(message.guild).Settings
 	local filt,reason=filter(message)
 	if filt then
 		local reply=message:reply(fmt("Your message has been filtered. Reason: %s | This message will self destruct in T-10 seconds.",reason))
@@ -119,7 +120,7 @@ function Events.messageUpdate(message)
 end
 function Events.messageDelete(message)
 	if message.channel.isPrivate then return end
-	local settings=Database:Get(message).Settings
+	local settings=Database:Get(message.guild).Settings
 	if convertToBool(settings.log_deleted)==true then
 		local chan=resolveChannel(message.guild,settings.other_logs)
 		if chan then
