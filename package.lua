@@ -7,7 +7,8 @@ return {
 	author = { name = "DannehSC" },
 	homepage = "https://github.com/DannehSC/Electricity-2.0",
 	dependencies = {
-        'DannehSC/luvit-reql',
+		'DannehSC/luvit-reql',
+		'DannehSC/encrypter',
         'SinisterRectus/discordia'
 	}
 }
