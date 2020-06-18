@@ -628,7 +628,7 @@ function timeBetween(tim)
 end
 function resolveGuild(guild)
 	local ts=tostring
-	if not guild then error"No ID/Guild/Message provided"end
+	if not guild then print"Oh well. No ID/Guild/Message provided" return end
 	local id
 	if type(guild)=='table'then
 		if guild['guild']then
