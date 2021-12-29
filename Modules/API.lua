@@ -4,7 +4,7 @@ API={
 	Endpoints={
 		['DBots_Stats']='https://bots.discord.pw/api/bots/%s/stats',
 		['DBotsOrg_Stats']='https://bots.discord.pw/api/bots/%s/stats',
-		['Meow']='https://aws.random.cat/meow',
+		['Meow']='https://internetcatdatabase.com/metadata.json',
 		['Bork']='https://dog.ceo/api/breeds/image/random',
 		['Urban']='https://api.urbandictionary.com/v0/define?term=%s',
 		['Carbon']='https://www.carbonitex.net/discord/data/botdata.php',
@@ -65,11 +65,15 @@ function API.Carbon:Stats_Update()
 	return API:Post('Carbon',nil,{{"Content-Type","application/json"}},json.encode(info))
 end
 function API.Misc:Cats()
-	local requestdata,request=API:Get('Meow')
+	local _,request=API:Get('Meow')
 	if not json.decode(request)then
 		return nil,'ERROR: Unable to decode JSON [API.Misc:Cats]'
 	end
-	return json.decode(request).file
+
+	local data = json.decode(request)
+	local cats = data.cats.main
+
+	return string.format("%s%d%s", cats.endpoint, math.random(cats.count), data.info.ext)
 end
 function API.Misc:Dogs()
 	local requestdata,request=API:Get('Bork')
@@ -142,7 +146,7 @@ function API.Search:Youtube(q)
 	})
 	local jsonData=json.decode(data)
 	local tx=''
-	
+
 end
 function API.Stats:Post()
 	local Data=API.Data.Stats
