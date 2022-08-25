@@ -73,7 +73,7 @@ function API.Misc:Cats()
 	local data = json.decode(request)
 	local cats = data.cats.main
 
-	return string.format("%s%d%s", cats.endpoint, math.random(cats.count), data.info.ext)
+	return string.format("%s%s%d%s", data.info.root, cats.endpoint, math.random(cats.count), data.info.ext)
 end
 function API.Misc:Dogs()
 	local requestdata,request=API:Get('Bork')
